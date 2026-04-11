@@ -7,7 +7,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Maxima">
-<link rel="manifest" href="manifest.json">
 <title>Maxima — Avukatlık Yönetim Sistemi</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -410,7 +409,23 @@ textarea.fc{resize:vertical;min-height:70px;}
 <body>
 
 <!-- USER SELECT SCREEN -->
-<div class="user-select-screen" id="user-select">
+<!-- ŞİFRE EKRANI -->
+<div class="user-select-screen" id="password-screen">
+  <div style="font-size:36px;margin-bottom:4px;">⚖️</div>
+  <div class="us-title">Maxima</div>
+  <div class="us-sub">Lütfen şifreyi girin</div>
+  <div style="max-width:300px;width:100%;padding:0 16px;">
+    <input class="fc" id="password-input" type="password" placeholder="Şifre..." 
+      style="text-align:center;font-size:16px;margin-bottom:12px;"
+      onkeydown="if(event.key==='Enter') checkPassword()">
+    <button class="btn btn-p w100" onclick="checkPassword()">Giriş</button>
+    <div id="password-error" style="color:var(--red);font-size:12px;margin-top:8px;text-align:center;display:none;">
+      Hatalı şifre. Tekrar deneyin.
+    </div>
+  </div>
+</div>
+
+<div class="user-select-screen" id="user-select" style="display:none;">
   <div style="font-size:36px;margin-bottom:4px;">⚖️</div>
   <div class="us-title">Maxima</div>
   <div class="us-sub">Kullanıcınızı seçin</div>
@@ -764,8 +779,22 @@ textarea.fc{resize:vertical;min-height:70px;}
       <!-- ARABULUCULUK & DAVA TARİHLERİ -->
       <div class="div-title">Arabuluculuk & Dava Tarihleri</div>
       <div class="frow frow-3">
-        <div class="fg"><label>Arabuluculuğa Başvuru Tarihi</label><input type="date" class="fc" id="c-arabulucu" onchange="handleDateField(this,'Arabuluculuğa Başvuru')"></div>
-        <div class="fg"><label>Dava Açılacak Tarih (Arb. Başarısız)</label><input type="date" class="fc" id="c-dava-ac" onchange="handleDateField(this,'Dava Açılacak Son Gün')"></div>
+        <div class="fg">
+          <label>Arabuluculuğa Başvuru Tarihi</label>
+          <input type="date" class="fc" id="c-arabulucu" onchange="handleDateField(this,'Arabuluculuğa Başvuru')">
+          <label class="fc-check" style="margin-top:7px;">
+            <input type="checkbox" id="c-arabulucu-bilgi">
+            <span style="font-size:12px;">Müvekkile bilgi verildi ✓</span>
+          </label>
+        </div>
+        <div class="fg">
+          <label>Dava Açılacak Tarih (Arb. Başarısız)</label>
+          <input type="date" class="fc" id="c-dava-ac" onchange="handleDateField(this,'Dava Açılacak Son Gün')">
+          <label class="fc-check" style="margin-top:7px;">
+            <input type="checkbox" id="c-dava-ac-bilgi">
+            <span style="font-size:12px;">Müvekkile bilgi verildi ✓</span>
+          </label>
+        </div>
         <div class="fg"><label>Zamanaşımı Tarihi</label><input type="date" class="fc" id="c-zamanasimi"></div>
       </div>
 
@@ -1116,60 +1145,13 @@ textarea.fc{resize:vertical;min-height:70px;}
 
 <script>
 // =========================================================
-// API KATMANI
-// =========================================================
-const API = {
-  async get(resource) {
-    const r = await fetch('/api/' + resource);
-    if(!r.ok) throw new Error('API error: ' + r.status);
-    return r.json();
-  },
-  async post(resource, data) {
-    const r = await fetch('/api/' + resource, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(data)
-    });
-    return r.json();
-  },
-  async put(resource, id, data) {
-    const url = id ? '/api/' + resource + '/' + id : '/api/' + resource;
-    const r = await fetch(url, {
-      method: 'PUT',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(data)
-    });
-    return r.json();
-  },
-  async del(resource, id, user) {
-    const r = await fetch('/api/' + resource + '/' + id + '?user=' + encodeURIComponent(user||''), {
-      method: 'DELETE'
-    });
-    return r.json();
-  }
-};
-
-async function loadAllData() {
-  const [c, e, t, ca, ch, u, s] = await Promise.all([
-    API.get('cases'), API.get('events'), API.get('todos'),
-    API.get('calls'), API.get('chat'), API.get('users'),
-    API.get('settings')
-  ]);
-  cases = c || []; events = e || []; todos = t || []; calls = ca || [];
-  chatMsgs = ch || []; users = u || [];
-  if(s && s.theme) settings = {...settings, ...s};
-  lastChatLen = chatMsgs.length;
-}
-
-
-// =========================================================
 // DATA
 // =========================================================
-let cases = [];
-let events = [];
-let users = ['Av. 1','Av. 2','Av. 3','Av. 4','Av. 5'];
-let logs = [];
-let settings = {theme:'dark', alarmDays:3};
+let cases = JSON.parse(localStorage.getItem('mx_cases') || '[]');
+let events = JSON.parse(localStorage.getItem('mx_events') || '[]');
+let users = JSON.parse(localStorage.getItem('mx_users') || '["Av. 1","Av. 2","Av. 3","Av. 4","Av. 5"]');
+let logs = JSON.parse(localStorage.getItem('mx_logs') || '[]');
+let settings = JSON.parse(localStorage.getItem('mx_settings') || '{"theme":"dark","alarmDays":3}');
 let currentUser = null;
 let editingCaseId = null;
 let caseFilter = 'all', caseSearch = '';
@@ -1189,34 +1171,11 @@ calMonth = now.getMonth();
 const TR_MONTHS = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
 
 function save() {
-  // Sunucu versiyonunda veri sync fonksiyonlarıyla kaydedilir
-  // Hızlı işlemler için lokal kopyalar güncellenir, arka planda sync yapılır
-  syncToServer();
-}
-
-let syncTimer = null;
-function syncToServer() {
-  // Debounce — 500ms sonra sync yap
-  clearTimeout(syncTimer);
-  syncTimer = setTimeout(async () => {
-    try {
-      await Promise.all([
-        API.put('cases', null, cases),
-        API.put('events', null, events),
-        API.put('todos', null, todos),
-        API.put('calls', null, calls),
-        API.put('logs', null, logs.slice(-500)),
-      ]);
-    } catch(e) { console.warn('Sync error:', e); }
-  }, 500);
-}
-
-async function saveSettings() {
-  await API.post('settings', settings);
-}
-
-async function saveUsers() {
-  await API.put('users', null, users);
+  localStorage.setItem('mx_cases', JSON.stringify(cases));
+  localStorage.setItem('mx_events', JSON.stringify(events));
+  localStorage.setItem('mx_users', JSON.stringify(users));
+  localStorage.setItem('mx_settings', JSON.stringify(settings));
+  localStorage.setItem('mx_logs', JSON.stringify(logs.slice(-500)));
 }
 
 function addLog(action, detail) {
@@ -1227,6 +1186,20 @@ function addLog(action, detail) {
 // =========================================================
 // USER SYSTEM
 // =========================================================
+function checkPassword() {
+  const input = document.getElementById('password-input');
+  const val = input.value;
+  if(val === 'adınısenkoy') {
+    document.getElementById('password-screen').style.display = 'none';
+    document.getElementById('user-select').style.display = 'flex';
+    initUserSelect();
+  } else {
+    document.getElementById('password-error').style.display = 'block';
+    input.value = '';
+    input.focus();
+  }
+}
+
 function initUserSelect() {
   applyTheme();
   const g = document.getElementById('us-grid');
@@ -1285,24 +1258,24 @@ function renderUsersList() {
     </div>`).join('');
 }
 
-async function saveUserEdit(i) {
+function saveUserEdit(i) {
   const el = document.getElementById('uinput-'+i);
   const val = el ? el.value.trim() : '';
-  if(!val){ showToast('⚠️','Hata','İsim boş olamaz.'); return; }
+  if(!val){ showToast('\u26a0\ufe0f','Hata','\u0130sim bo\u015f olamaz.'); return; }
   users[i] = val;
-  await API.put('users', null, users);
+  save();
   initUserSelect();
-  showToast('✅','Kaydedildi', val + ' güncellendi.');
+  showToast('\u2705','Kaydedildi', val + ' g\u00fcncellendi.');
 }
 function removeUser(i) {
   if(users.length <= 1){ showToast('⚠️','Uyarı','En az 1 kullanıcı olmalı.'); return; }
+  if(!confirm('"' + users[i] + '" kullanıcısını silmek istediğinizden emin misiniz?')) return;
   users.splice(i,1); save(); renderUsersList(); initUserSelect();
 }
-async function addUser() {
+function addUser() {
   const v = document.getElementById('new-user-input').value.trim();
   if(!v) return;
-  users.push(v);
-  await API.put('users', null, users);
+  users.push(v); save();
   document.getElementById('new-user-input').value = '';
   renderUsersList(); initUserSelect();
   showToast('✅','Eklendi',v + ' eklendi.');
@@ -1339,7 +1312,7 @@ function goPage(id, el) {
   if(id==='calls') { renderCalls(); updateCallsBadge(); }
   if(id==='todo') { renderTodos(); populateTodoFilterUser(); }
   if(id==='chat') {
-    // Chat mesajları zaten API'den yüklendi
+    chatMsgs = JSON.parse(localStorage.getItem('mx_chat')||'[]');
     lastChatLen = chatMsgs.length;
     renderChat(); renderChatUsers(); scrollChat();
     const b = document.getElementById('badge-chat');
@@ -1558,7 +1531,7 @@ function resetCaseForm() {
     'c-gk-tarih','c-istinaf-tarih','c-kt-istinaf-tarih','c-ise-iade-tarih','c-teblig-serhi-tarih',
     'c-icra-daire','c-icra-esas','c-icra-teblig-tarih','c-teminat-tarih','c-icra-not','c-not'];
   ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-  const chks = ['c-delil-yapildi','c-tanik-yapildi','c-beyan-yapildi','c-gider-yapildi',
+  const chks = ['c-arabulucu-bilgi','c-dava-ac-bilgi','c-delil-yapildi','c-tanik-yapildi','c-beyan-yapildi','c-gider-yapildi',
     'c-islah-yapilacak','c-islah-yapilmayacak','c-islah-yapildi','c-gk-yazildi','c-gk-teblig',
     'c-istinaf-yapilacak','c-istinaf-edilmeyecek','c-istinaf-yapildi','c-kt-istinaf-yapti','c-ihtar-gonderildi',
     'c-icra-yapildi','c-icra-teblig-yapildi','c-teminat-yapildi','c-icra-tahsil',
@@ -1578,8 +1551,8 @@ function fillCaseForm(c) {
   set('c-karsitaraf',c.karsitaraf); set('c-mahkeme',c.mahkeme); set('c-esas',c.esas);
   set('c-konu',c.konu); set('c-status',c.status); set('c-tur',c.tur); set('c-karar',c.karar||'');
 
-  set('c-arabulucu',c.arabulucu);
-  set('c-dava-ac',c.davaAc);
+  set('c-arabulucu',c.arabulucu); chk('c-arabulucu-bilgi',c.arabulucuBilgi);
+  set('c-dava-ac',c.davaAc); chk('c-dava-ac-bilgi',c.davaAcBilgi);
   set('c-zamanasimi', c.zamanasimi);
   set('c-delil-tarih',c.delilTarih); chk('c-delil-yapildi',c.delilYapildi);
   set('c-beyan-tarih',c.beyanTarih); chk('c-beyan-yapildi',c.beyanYapildi);
@@ -1611,8 +1584,8 @@ function readCaseForm() {
     buro:g('c-buro'), muv:g('c-muv'), tel:g('c-tel'), karsitaraf:g('c-karsitaraf'),
     mahkeme:g('c-mahkeme'), esas:g('c-esas'), konu:g('c-konu'),
     status:g('c-status'), tur:g('c-tur'), karar:g('c-karar'),
-    arabulucu: g('c-arabulucu'),
-    davaAc: g('c-dava-ac'),
+    arabulucu: g('c-arabulucu'), arabulucuBilgi: c('c-arabulucu-bilgi'),
+    davaAc: g('c-dava-ac'), davaAcBilgi: c('c-dava-ac-bilgi'),
     zamanasimi:g('c-zamanasimi'),
     delilTarih: g('c-delil-tarih'), delilYapildi:c('c-delil-yapildi'),
     tanikTarih: g('c-tanik-tarih'), tanikYapildi:c('c-tanik-yapildi'),
@@ -1651,7 +1624,7 @@ function saveCase() {
     addLog('Yeni Dava Eklendi', `Büro: ${data.buro} — ${data.muv}`);
     syncCaseEvents(newCase.id, data);
   }
-  save(); closeMod('case');
+  save(); delete modalSnapshot['case']; closeMod('case', true);
   showToast('✅','Kaydedildi', data.muv + ' davası kaydedildi.');
   updateStats(); renderRecentCases(); renderCasesTable(); renderCalendar(); renderDashboardUpcoming();
 }
@@ -1664,7 +1637,7 @@ function syncCaseEvents(caseId, data) {
 }
 
 function deleteCase(id) {
-  if(!confirm('Bu davayı silmek istediğinizden emin misiniz?')) return;
+  if(!confirm('Bu davayı kalıcı olarak silmek istediğinizden emin misiniz?\nBu işlem geri alınamaz!')) return;
   const c = cases.find(x=>x.id===id);
   cases = cases.filter(x=>x.id!==id);
   events = events.filter(e=>e.caseId!==id); // manuel eklenen etkinlikleri temizle
@@ -1681,18 +1654,26 @@ function deleteCaseFromModal() {
 
 // DURUŞMA
 function addDurusma() {
-  tmpDurusmalar.push({ id: Date.now().toString(), tarih:'', saat:'09:00', not:'' });
+  tmpDurusmalar.push({ id: Date.now().toString(), tarih:'', saat:'09:00', not:'', muvekkilBilgi:false });
   renderDurusmaList();
 }
 function renderDurusmaList() {
   const cont = document.getElementById('durusma-list');
   if(!tmpDurusmalar.length){ cont.innerHTML='<div class="txt-3" style="font-size:12px;padding:4px 0;">Henüz duruşma eklenmedi.</div>'; return; }
   cont.innerHTML = tmpDurusmalar.map((d,i)=>`
-    <div class="flex" style="gap:8px;padding:6px 0;border-bottom:1px solid var(--brd);">
-      <input type="date" class="fc" style="flex:2;" value="${d.tarih}" onchange="tmpDurusmalar[${i}].tarih=this.value">
-      <input type="time" class="fc" style="flex:1;" value="${d.saat}" onchange="tmpDurusmalar[${i}].saat=this.value">
-      <input class="fc" style="flex:3;" placeholder="Not..." value="${d.not||''}" onchange="tmpDurusmalar[${i}].not=this.value">
-      <button class="ib" onclick="tmpDurusmalar.splice(${i},1);renderDurusmaList()">🗑</button>
+    <div style="padding:8px 0;border-bottom:1px solid var(--brd);">
+      <div class="flex" style="gap:8px;margin-bottom:6px;">
+        <input type="date" class="fc" style="flex:2;" value="${d.tarih}" onchange="tmpDurusmalar[${i}].tarih=this.value">
+        <input type="time" class="fc" style="flex:1;" value="${d.saat}" onchange="tmpDurusmalar[${i}].saat=this.value">
+        <input class="fc" style="flex:3;" placeholder="Not..." value="${d.not||''}" onchange="tmpDurusmalar[${i}].not=this.value">
+        <button class="ib" onclick="if(confirm('Bu duruşmayı silmek istiyor musunuz?')) { tmpDurusmalar.splice(${i},1);renderDurusmaList(); }">🗑</button>
+      </div>
+      <div class="flex" style="gap:8px;padding-left:2px;">
+        <label class="fc-check">
+          <input type="checkbox" ${d.muvekkilBilgi?'checked':''} onchange="tmpDurusmalar[${i}].muvekkilBilgi=this.checked">
+          <span style="font-size:12px;">Müvekkile bilgi verildi ✓</span>
+        </label>
+      </div>
     </div>`).join('');
 }
 
@@ -1710,7 +1691,7 @@ function renderMuzList() {
         <input class="fc" style="flex:3;" placeholder="Müzekkere adı/açıklaması..." value="${m.ad||''}" onchange="tmpMuzekkere[${i}].ad=this.value">
         <label class="fc-check"><input type="checkbox" ${m.yazildi?'checked':''} onchange="tmpMuzekkere[${i}].yazildi=this.checked"><span>Yazıldı</span></label>
         <label class="fc-check"><input type="checkbox" ${m.cevap?'checked':''} onchange="tmpMuzekkere[${i}].cevap=this.checked"><span>Cevap Geldi</span></label>
-        <button class="ib" onclick="tmpMuzekkere.splice(${i},1);renderMuzList()">🗑</button>
+        <button class="ib" onclick="if(confirm('Bu müzekkereyi silmek istiyor musunuz?')) { tmpMuzekkere.splice(${i},1);renderMuzList(); }">🗑</button>
       </div>
       <div class="flex" style="gap:8px;">
         <div style="flex:1;"><label style="font-size:10px;color:var(--txt3);display:block;margin-bottom:3px;">Hatırlatıcı Tarihi</label>
@@ -1732,7 +1713,7 @@ function renderGenelNotList() {
     <div class="flex" style="gap:8px;padding:6px 0;border-bottom:1px solid var(--brd);align-items:flex-start;">
       <input type="date" class="fc" style="flex:1;flex-shrink:0;" value="${n.tarih||''}" onchange="tmpGenelNotlar[${i}].tarih=this.value">
       <textarea class="fc" style="flex:4;" rows="2" onchange="tmpGenelNotlar[${i}].metin=this.value">${n.metin||''}</textarea>
-      <button class="ib" onclick="tmpGenelNotlar.splice(${i},1);renderGenelNotList()">🗑</button>
+      <button class="ib" onclick="if(confirm('Bu notu silmek istiyor musunuz?')) { tmpGenelNotlar.splice(${i},1);renderGenelNotList(); }">🗑</button>
     </div>`).join('');
 }
 
@@ -1786,7 +1767,7 @@ function renderDayEvents(d) {
     <div class="ev-item ${e.priority==='urgent'?'ev-urg':e.type==='deadline'?'ev-dl':e.type==='meeting'?'ev-mtg':e.type==='todo'?'ev-todo':''}${e.todoDone?' ev-done-todo':''}">
       <div class="ev-title" style="${e.todoDone?'text-decoration:line-through;opacity:.6;':''}">${e.type==='todo'?e.title.replace(/~~/g,''):e.title}</div>
       <div class="ev-meta">${e.sub||''}${e.todoDone?' · <span style=\'color:var(--grn);\'>Tamamlandı</span>':''}</div>
-      ${e.id&&!e.auto?`<button class="ev-del" onclick="delEvent('${e.id}')">×</button>`:''}
+      ${e.id&&!e.auto?`<button class="ev-del" onclick="if(confirm('Bu etkinliği silmek istiyor musunuz?')) delEvent('${e.id}')">×</button>`:''}
     </div>`).join('') + hearDiv + hearingEvs.map(e=>`
     <div class="ev-item" style="border-left-color:var(--txt3);opacity:.85;">
       <div class="ev-title">${e.title}</div>
@@ -1810,11 +1791,11 @@ function saveEvent() {
   const date=document.getElementById('e-date').value;
   if(!title||!date){ showToast('⚠️','Eksik','Başlık ve tarih gerekli.'); return; }
   events.push({ id:Date.now().toString(), title, date, time:document.getElementById('e-time').value, type:document.getElementById('e-type').value, caseNo:document.getElementById('e-case').value, priority:document.getElementById('e-priority').value, desc:document.getElementById('e-desc').value, addedBy:currentUser });
-  save(); closeMod('event');
+  save(); delete modalSnapshot['event']; closeMod('event', true);
   showToast('📅','Eklendi','Takvim olayı kaydedildi.');
   renderCalendar(); renderReminders(); updateStats();
 }
-function delEvent(id){ events=events.filter(e=>e.id!==id); save(); renderCalendar(); renderReminders(); updateStats(); }
+function delEvent(id){ if(!confirm('Bu takvim olayını silmek istediğinizden emin misiniz?')) return; events=events.filter(e=>e.id!==id); save(); renderCalendar(); renderReminders(); updateStats(); }
 
 // =========================================================
 // REMINDERS
@@ -1894,9 +1875,37 @@ function renderLog() {
 // =========================================================
 // MODAL HELPERS
 // =========================================================
-function openMod(id) { document.getElementById('modal-'+id).classList.add('show'); }
-function closeMod(id) { document.getElementById('modal-'+id).classList.remove('show'); }
-document.querySelectorAll('.moverlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('show'); }));
+function openMod(id) {
+  document.getElementById('modal-'+id).classList.add('show');
+  // Formdaki mevcut değerleri kaydet (değişiklik tespiti için)
+  modalSnapshot[id] = getModalSnapshot(id);
+}
+
+function closeMod(id, force) {
+  if(!force && hasModalChanges(id)) {
+    if(!confirm('Değişiklikler kaydedilmedi. Çıkmak istiyor musunuz?')) return;
+  }
+  document.getElementById('modal-'+id).classList.remove('show');
+  delete modalSnapshot[id];
+}
+
+const modalSnapshot = {};
+
+function getModalSnapshot(id) {
+  const modal = document.getElementById('modal-'+id);
+  if(!modal) return '';
+  const inputs = modal.querySelectorAll('input, select, textarea');
+  return Array.from(inputs).map(el => {
+    if(el.type === 'checkbox') return el.id + ':' + el.checked;
+    return el.id + ':' + el.value;
+  }).join('|');
+}
+
+function hasModalChanges(id) {
+  const current = getModalSnapshot(id);
+  return modalSnapshot[id] !== undefined && modalSnapshot[id] !== current;
+}
+document.querySelectorAll('.moverlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) { const id=o.id.replace('modal-',''); closeMod(id); } }));
 
 // =========================================================
 // TOAST
@@ -1959,7 +1968,7 @@ function renderBilList() {
     <div style="background:var(--sur2);border:1px solid var(--brd);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <span style="font-size:12px;font-weight:600;color:var(--acc);">${i+1}. Bilirkişi Süreci</span>
-        <button class="ib" onclick="tmpBilirkisi.splice(${i},1);renderBilList()">🗑</button>
+        <button class="ib" onclick="if(confirm('Bu bilirkişi sürecini silmek istiyor musunuz?')) { tmpBilirkisi.splice(${i},1);renderBilList(); }">🗑</button>
       </div>
       <div class="frow frow-4">
         <div class="fg" style="display:flex;align-items:flex-end;">
@@ -2019,10 +2028,10 @@ function renderZamanasimi() {
 // =========================================================
 // CALLS
 // =========================================================
-let calls = [];
+let calls = JSON.parse(localStorage.getItem('mx_calls') || '[]');
 let editingCallId = null;
 
-function saveCalls() { save(); }
+function saveCalls() { localStorage.setItem('mx_calls', JSON.stringify(calls)); }
 
 function openCallModal(id) {
   editingCallId = id || null;
@@ -2059,7 +2068,7 @@ function saveCall() {
   };
   if(editingCallId) { calls = calls.map(c=>c.id===editingCallId?obj:c); addLog('Arama Güncellendi', name); }
   else { calls.unshift(obj); addLog('Arama Kaydedildi', name + ' aradı'); }
-  saveCalls(); closeMod('call');
+  saveCalls(); delete modalSnapshot['call']; closeMod('call', true);
   showToast('📞','Kaydedildi', name + ' araması kaydedildi.');
   renderCalls(); updateCallsBadge();
 }
@@ -2075,7 +2084,7 @@ function toggleTalepKarsilandi(id, val) {
 
 function deleteCallById(id) {
   const c = calls.find(x=>x.id===id);
-  if(!confirm('Bu arama kaydını silmek istediğinizden emin misiniz?')) return;
+  if(!confirm('"' + (c?.name||'Bu arama kaydı') + '"\nkalıcı olarak silinecek. Emin misiniz?')) return;
   calls = calls.filter(x=>x.id!==id);
   addLog('Arama Silindi', c?.name||'');
   saveCalls(); renderCalls(); updateCallsBadge();
@@ -2085,6 +2094,7 @@ function deleteCallById(id) {
 function deleteCallFromModal() {
   if(!editingCallId) return;
   const c = calls.find(x=>x.id===editingCallId);
+  if(!confirm('"' + (c?.name||'Bu arama kaydı') + '"\nkalıcı olarak silinecek. Emin misiniz?')) return;
   calls = calls.filter(x=>x.id!==editingCallId);
   addLog('Arama Silindi', c?.name||'');
   saveCalls(); closeMod('call');
@@ -2161,51 +2171,79 @@ function renderCalls() {
 // BACKUP / RESTORE
 // =========================================================
 function exportData() {
-  // Sunucudan yedek indir
-  window.location.href = '/api/backup';
-  addLog('Veri Yedeklendi', currentUser, cases.length + ' dava');
-  showToast('💾','Yedek İndiriliyor', cases.length + ' dava yedekleniyor...');
+  const data = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    exportedBy: currentUser || 'Bilinmiyor',
+    calls: JSON.parse(localStorage.getItem('mx_calls') || '[]'),
+    cases: JSON.parse(localStorage.getItem('mx_cases') || '[]'),
+    events: JSON.parse(localStorage.getItem('mx_events') || '[]'),
+    todos: JSON.parse(localStorage.getItem('mx_todos') || '[]'),
+    chat: JSON.parse(localStorage.getItem('mx_chat') || '[]'),
+    users: JSON.parse(localStorage.getItem('mx_users') || '[]'),
+    logs: JSON.parse(localStorage.getItem('mx_logs') || '[]'),
+    settings: JSON.parse(localStorage.getItem('mx_settings') || '{}')
+  };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toLocaleDateString('tr-TR').replace(/\./g,'-');
+  a.href = url;
+  a.download = `Maxima_Yedek_${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  addLog('Veri Yedeklendi', `${data.cases.length} dava, ${data.todos.length} görev`);
+  showToast('💾', 'Yedek Alındı', `${data.cases.length} dava, ${data.todos.length} görev yedeklendi.`);
 }
 
 function importData(input) {
   const file = input.files[0];
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = async function(e) {
+  reader.onload = function(e) {
     try {
       const data = JSON.parse(e.target.result);
       if(!data.version || !data.cases) {
-        showToast('❌','Hata','Geçersiz yedek dosyası.'); return;
+        showToast('❌', 'Hata', 'Geçersiz yedek dosyası.'); return;
       }
       const count = data.cases?.length || 0;
-      const ok = confirm(
-        '"' + file.name + '" dosyasından ' + count + ' dava yüklenecek.\n\n' +
-        'Yedek tarihi: ' + new Date(data.exportedAt).toLocaleString("tr-TR") + '\n\n' +
-        '⚠️ Mevcut tüm veriler silinecek. Devam etmek istiyor musunuz?'
+      const confirm1 = confirm(
+        `"${file.name}" dosyasından ${count} dava yüklenecek.
+
+` +
+        `Yedek tarihi: ${new Date(data.exportedAt).toLocaleString('tr-TR')}
+
+` +
+        `⚠️ Mevcut tüm veriler silinecek. Devam etmek istiyor musunuz?`
       );
-      if(!ok) { input.value=''; return; }
-      const result = await fetch('/api/restore', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify(data)
-      });
-      const res = await result.json();
-      if(res.ok) {
-        input.value = '';
-        showToast('✅','Yüklendi', count + ' dava geri yüklendi. Sayfa yenileniyor...');
-        setTimeout(() => location.reload(), 1500);
-      } else {
-        showToast('❌','Hata','Yükleme başarısız.');
-      }
+      if(!confirm1) { input.value=''; return; }
+      if(data.calls) localStorage.setItem('mx_calls', JSON.stringify(data.calls));
+      if(data.cases) localStorage.setItem('mx_cases', JSON.stringify(data.cases));
+      if(data.events) localStorage.setItem('mx_events', JSON.stringify(data.events));
+      if(data.todos) localStorage.setItem('mx_todos', JSON.stringify(data.todos));
+      if(data.chat) localStorage.setItem('mx_chat', JSON.stringify(data.chat));
+      if(data.users) localStorage.setItem('mx_users', JSON.stringify(data.users));
+      if(data.logs) localStorage.setItem('mx_logs', JSON.stringify(data.logs));
+      if(data.settings) localStorage.setItem('mx_settings', JSON.stringify(data.settings));
+      input.value = '';
+      showToast('✅', 'Yüklendi', `${count} dava başarıyla geri yüklendi. Sayfa yenileniyor...`);
+      setTimeout(() => location.reload(), 1500);
     } catch(err) {
-      showToast('❌','Hata','Dosya okunamadı: ' + err.message);
+      showToast('❌', 'Hata', 'Dosya okunamadı: ' + err.message);
       input.value = '';
     }
   };
   reader.readAsText(file, 'UTF-8');
 }
 
-function saveTodos() { save(); }
+// =========================================================
+// TODO
+// =========================================================
+let todos = JSON.parse(localStorage.getItem('mx_todos') || '[]');
+let editingTodoId = null;
+
+function saveTodos() { localStorage.setItem('mx_todos', JSON.stringify(todos)); }
 
 function isValidDate(val) {
   if(!val || val.length !== 10) return false;
@@ -2253,7 +2291,7 @@ function renderBilList() {
     <div style="background:var(--sur2);border:1px solid var(--brd);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <span style="font-size:12px;font-weight:600;color:var(--acc);">${i+1}. Bilirkişi Süreci</span>
-        <button class="ib" onclick="tmpBilirkisi.splice(${i},1);renderBilList()">🗑</button>
+        <button class="ib" onclick="if(confirm('Bu bilirkişi sürecini silmek istiyor musunuz?')) { tmpBilirkisi.splice(${i},1);renderBilList(); }">🗑</button>
       </div>
       <div class="frow frow-4">
         <div class="fg" style="display:flex;align-items:flex-end;">
@@ -2314,7 +2352,7 @@ function renderZamanasimi() {
 // CALLS
 // =========================================================
 
-function saveCalls() { save(); }
+function saveCalls() { localStorage.setItem('mx_calls', JSON.stringify(calls)); }
 
 function openCallModal(id) {
   editingCallId = id || null;
@@ -2351,7 +2389,7 @@ function saveCall() {
   };
   if(editingCallId) { calls = calls.map(c=>c.id===editingCallId?obj:c); addLog('Arama Güncellendi', name); }
   else { calls.unshift(obj); addLog('Arama Kaydedildi', name + ' aradı'); }
-  saveCalls(); closeMod('call');
+  saveCalls(); delete modalSnapshot['call']; closeMod('call', true);
   showToast('📞','Kaydedildi', name + ' araması kaydedildi.');
   renderCalls(); updateCallsBadge();
 }
@@ -2367,7 +2405,7 @@ function toggleTalepKarsilandi(id, val) {
 
 function deleteCallById(id) {
   const c = calls.find(x=>x.id===id);
-  if(!confirm('Bu arama kaydını silmek istediğinizden emin misiniz?')) return;
+  if(!confirm('"' + (c?.name||'Bu arama kaydı') + '"\nkalıcı olarak silinecek. Emin misiniz?')) return;
   calls = calls.filter(x=>x.id!==id);
   addLog('Arama Silindi', c?.name||'');
   saveCalls(); renderCalls(); updateCallsBadge();
@@ -2377,6 +2415,7 @@ function deleteCallById(id) {
 function deleteCallFromModal() {
   if(!editingCallId) return;
   const c = calls.find(x=>x.id===editingCallId);
+  if(!confirm('"' + (c?.name||'Bu arama kaydı') + '"\nkalıcı olarak silinecek. Emin misiniz?')) return;
   calls = calls.filter(x=>x.id!==editingCallId);
   addLog('Arama Silindi', c?.name||'');
   saveCalls(); closeMod('call');
@@ -2452,13 +2491,78 @@ function renderCalls() {
 // =========================================================
 // BACKUP / RESTORE
 // =========================================================
+function exportData() {
+  const data = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    exportedBy: currentUser || 'Bilinmiyor',
+    calls: JSON.parse(localStorage.getItem('mx_calls') || '[]'),
+    cases: JSON.parse(localStorage.getItem('mx_cases') || '[]'),
+    events: JSON.parse(localStorage.getItem('mx_events') || '[]'),
+    todos: JSON.parse(localStorage.getItem('mx_todos') || '[]'),
+    chat: JSON.parse(localStorage.getItem('mx_chat') || '[]'),
+    users: JSON.parse(localStorage.getItem('mx_users') || '[]'),
+    logs: JSON.parse(localStorage.getItem('mx_logs') || '[]'),
+    settings: JSON.parse(localStorage.getItem('mx_settings') || '{}')
+  };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toLocaleDateString('tr-TR').replace(/\./g,'-');
+  a.href = url;
+  a.download = `Maxima_Yedek_${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  addLog('Veri Yedeklendi', `${data.cases.length} dava, ${data.todos.length} görev`);
+  showToast('💾', 'Yedek Alındı', `${data.cases.length} dava, ${data.todos.length} görev yedeklendi.`);
+}
 
+function importData(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if(!data.version || !data.cases) {
+        showToast('❌', 'Hata', 'Geçersiz yedek dosyası.'); return;
+      }
+      const count = data.cases?.length || 0;
+      const confirm1 = confirm(
+        `"${file.name}" dosyasından ${count} dava yüklenecek.
+
+` +
+        `Yedek tarihi: ${new Date(data.exportedAt).toLocaleString('tr-TR')}
+
+` +
+        `⚠️ Mevcut tüm veriler silinecek. Devam etmek istiyor musunuz?`
+      );
+      if(!confirm1) { input.value=''; return; }
+      if(data.calls) localStorage.setItem('mx_calls', JSON.stringify(data.calls));
+      if(data.cases) localStorage.setItem('mx_cases', JSON.stringify(data.cases));
+      if(data.events) localStorage.setItem('mx_events', JSON.stringify(data.events));
+      if(data.todos) localStorage.setItem('mx_todos', JSON.stringify(data.todos));
+      if(data.chat) localStorage.setItem('mx_chat', JSON.stringify(data.chat));
+      if(data.users) localStorage.setItem('mx_users', JSON.stringify(data.users));
+      if(data.logs) localStorage.setItem('mx_logs', JSON.stringify(data.logs));
+      if(data.settings) localStorage.setItem('mx_settings', JSON.stringify(data.settings));
+      input.value = '';
+      showToast('✅', 'Yüklendi', `${count} dava başarıyla geri yüklendi. Sayfa yenileniyor...`);
+      setTimeout(() => location.reload(), 1500);
+    } catch(err) {
+      showToast('❌', 'Hata', 'Dosya okunamadı: ' + err.message);
+      input.value = '';
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
 
 // =========================================================
 // TODO
 // =========================================================
 
-function saveTodos() { save(); }
+function saveTodos() { localStorage.setItem('mx_todos', JSON.stringify(todos)); }
 
 function isValidDate(val) {
   if(!val || val.length !== 10) return false;
@@ -2622,7 +2726,7 @@ function saveTodo() {
   };
   if(editingTodoId) { todos = todos.map(t=>t.id===editingTodoId?obj:t); addLog('Gorev Guncellendi', title); }
   else { todos.unshift(obj); addLog('Gorev Eklendi', title); }
-  saveTodos(); closeMod('todo');
+  saveTodos(); delete modalSnapshot['todo']; closeMod('todo', true);
   showToast('✅','Kaydedildi', title);
   renderTodos(); updateTodoBadge(); renderCalendar(); updateStats(); renderDashboardUpcoming(); renderReminders();
 }
@@ -2640,6 +2744,7 @@ function toggleTodo(id) {
 function deleteTodoFromModal() {
   if(!editingTodoId) return;
   const t = todos.find(x=>x.id===editingTodoId);
+  if(!confirm('"' + (t?.title||'Bu görev') + '"\nkalıcı olarak silinecek. Emin misiniz?')) return;
   todos = todos.filter(x=>x.id!==editingTodoId);
   addLog('Gorev Silindi', t?.title||'');
   saveTodos(); closeMod('todo');
@@ -2755,21 +2860,19 @@ function renderTodos() {
 // =========================================================
 // CHAT
 // =========================================================
-let chatMsgs = [];
+let chatMsgs = JSON.parse(localStorage.getItem('mx_chat') || '[]');
 let chatInterval = null;
 let lastChatLen = chatMsgs.length;
 
-function saveChat() { /* chat sunucuya anlık gönderilir */ }
+function saveChat() { localStorage.setItem('mx_chat', JSON.stringify(chatMsgs.slice(-500))); }
 
-async function sendChat() {
+function sendChat() {
   const inp = document.getElementById('chat-input');
   const msg = inp?.value.trim();
   if(!msg || !currentUser) return;
-  const newMsg = { id: Date.now().toString(), user: currentUser, text: msg, ts: new Date().toISOString() };
-  chatMsgs.push(newMsg);
-  inp.value = '';
+  chatMsgs.push({ id: Date.now().toString(), user: currentUser, text: msg, ts: new Date().toISOString() });
+  saveChat(); inp.value = '';
   renderChat(); scrollChat();
-  await API.post('chat', newMsg);
 }
 
 function renderChat() {
@@ -2801,8 +2904,8 @@ function renderChatUsers() {
     </div>`).join('');
 }
 
-async function updateChatBadge() {
-  const stored = await API.get('chat');
+function updateChatBadge() {
+  const stored = JSON.parse(localStorage.getItem('mx_chat')||'[]');
   if(stored.length > lastChatLen) {
     const newMsgs = stored.slice(lastChatLen);
     const activePage = document.querySelector('.page.active')?.id;
@@ -2834,31 +2937,14 @@ function escHtml(s) {
 // =========================================================
 // INIT
 // =========================================================
-// Service Worker kaydı
-if('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js')
-      .then(r => console.log('SW registered'))
-      .catch(e => console.log('SW error:', e));
-  });
-}
-
 applyTheme();
-initUserSelect();
-
-// API bağlantı katmanını ekle
-const origSelectUser = selectUser;
-selectUser = async function(idx) {
-  // Önce sunucudan veriyi yükle
-  try {
-    await loadAllData();
-  } catch(e) {
-    showToast('⚠️','Bağlantı Hatası','Sunucuya bağlanılamadı. Lütfen sayfayı yenileyin.');
-    return;
-  }
-  origSelectUser(idx);
-};
+// Şifre ekranını göster, kullanıcı seçimini gizle
+document.getElementById('password-screen').style.display = 'flex';
+document.getElementById('user-select').style.display = 'none';
+setTimeout(() => document.getElementById('password-input')?.focus(), 300);
 </script>
+<script>
 
+</script>
 </body>
 </html>
