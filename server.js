@@ -5,7 +5,7 @@ const url = require('url');
 
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
-const PUBLIC_DIR = path.join(__dirname, 'public');
+const PUBLIC_DIR = path.join(__dirname);
 
 // Veri dosyaları
 const FILES = {
@@ -229,14 +229,14 @@ const server = http.createServer(async (req, res) => {
 
   // ── Statik dosyalar ──────────────────────────────────
   if (pathname === '/' || pathname === '/index.html') {
-    return serveStatic(res, path.join(PUBLIC_DIR, 'index.html'));
+    return serveStatic(res, path.join(__dirname, 'index.html'));
   }
   const filePath = path.join(PUBLIC_DIR, pathname);
   if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
     return serveStatic(res, filePath);
   }
   // SPA fallback
-  serveStatic(res, path.join(PUBLIC_DIR, 'index.html'));
+  serveStatic(res, path.join(__dirname, 'index.html'));
 });
 
 server.listen(PORT, '0.0.0.0', () => {
