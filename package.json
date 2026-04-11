@@ -1,7 +1,6 @@
 {
   "name": "maxima",
   "version": "1.0.0",
-  "description": "Maxima Avukatlık Yönetim Sistemi",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
