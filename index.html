@@ -1,0 +1,2864 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#c9a85c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Maxima">
+<link rel="manifest" href="manifest.json">
+<title>Maxima — Avukatlık Yönetim Sistemi</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f0e11;--sur:#18171c;--sur2:#201f26;--sur3:#2a2933;
+  --brd:#2e2d38;--brd2:#3d3c4a;
+  --acc:#c9a85c;--acc2:#e8c97a;--adim:rgba(201,168,92,.15);
+  --txt:#f0ede8;--txt2:#a09c96;--txt3:#6b6870;
+  --red:#e05c5c;--rdim:rgba(224,92,92,.14);
+  --grn:#5ccba8;--gdim:rgba(92,203,168,.14);
+  --blu:#5c9ee0;--bdim:rgba(92,158,224,.14);
+  --org:#e09a5c;--odim:rgba(224,154,92,.14);
+  --pur:#a07cd8;--pdim:rgba(160,124,216,.14);
+  --r:9px;--rl:14px;--shd:0 4px 24px rgba(0,0,0,.4);
+}
+.light{
+  --bg:#f4f2ee;--sur:#fff;--sur2:#f0ede8;--sur3:#e8e4de;
+  --brd:#ddd9d2;--brd2:#ccc8c0;
+  --acc:#9a6e2e;--acc2:#b8862e;--adim:rgba(154,110,46,.12);
+  --txt:#1a1814;--txt2:#6b6460;--txt3:#9a9690;
+  --red:#c0392b;--rdim:rgba(192,57,43,.1);
+  --grn:#1e8a6e;--gdim:rgba(30,138,110,.1);
+  --blu:#2860a8;--bdim:rgba(40,96,168,.1);
+  --org:#b8621a;--odim:rgba(184,98,26,.1);
+  --pur:#7c4db8;--pdim:rgba(124,77,184,.1);
+  --shd:0 4px 24px rgba(0,0,0,.08);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--txt);font-family:'DM Sans',sans-serif;min-height:100vh;transition:background .3s,color .3s;font-size:13px;}
+button,input,select,textarea{font-family:'DM Sans',sans-serif;font-size:13px;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--brd);border-radius:3px;}
+
+/* LAYOUT */
+#app{display:flex;height:100vh;overflow:hidden;}
+#sidebar{width:210px;background:var(--sur);border-right:1px solid var(--brd);display:flex;flex-direction:column;flex-shrink:0;}
+#main{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
+
+/* SIDEBAR */
+.logo{padding:18px 14px 14px;border-bottom:1px solid var(--brd);}
+.logo h1{font-family:'Playfair Display',serif;font-size:19px;color:var(--acc);}
+.logo small{font-size:9.5px;color:var(--txt3);letter-spacing:1.4px;text-transform:uppercase;}
+.nav{flex:1;padding:8px 5px;overflow-y:auto;}
+.nav-sec{font-size:9.5px;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;padding:10px 9px 3px;font-weight:600;}
+.ni{display:flex;align-items:center;gap:7px;padding:8px 9px;border-radius:7px;cursor:pointer;color:var(--txt2);font-size:12.5px;font-weight:500;transition:all .14s;margin-bottom:1px;border:1px solid transparent;}
+.ni:hover{background:var(--sur2);color:var(--txt);}
+.ni.active{background:var(--adim);color:var(--acc);border-color:rgba(201,168,92,.18);}
+.ni .ico{font-size:14px;width:16px;text-align:center;}
+.nbadge{margin-left:auto;background:var(--red);color:#fff;font-size:9px;padding:1px 5px;border-radius:999px;font-weight:700;}
+.sfooter{padding:10px;border-top:1px solid var(--brd);display:flex;flex-direction:column;gap:6px;}
+.user-pill{display:flex;align-items:center;gap:7px;padding:7px 9px;border-radius:7px;background:var(--adim);border:1px solid rgba(201,168,92,.2);cursor:pointer;transition:all .14s;}
+.user-pill:hover{background:rgba(201,168,92,.22);}
+.uav{width:24px;height:24px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#0f0e11;flex-shrink:0;}
+.uname{font-size:11.5px;font-weight:600;color:var(--acc);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.theme-btn{background:var(--sur2);border:1px solid var(--brd);color:var(--txt3);border-radius:6px;padding:5px;font-size:11px;cursor:pointer;transition:all .14s;text-align:center;}
+.theme-btn:hover{border-color:var(--brd2);color:var(--txt2);}
+
+/* TOPBAR */
+.topbar{padding:16px 22px 0;display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0;}
+.ptitle{font-family:'Playfair Display',serif;font-size:22px;color:var(--txt);}
+.psub{font-size:11px;color:var(--txt3);margin-top:2px;}
+.tactions{display:flex;gap:6px;align-items:center;}
+
+/* CONTENT */
+.content{padding:14px 22px 24px;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:7px;font-size:12.5px;font-weight:500;cursor:pointer;border:none;transition:all .14s;}
+.btn-p{background:var(--acc);color:#0f0e11;}
+.btn-p:hover{background:var(--acc2);}
+.btn-s{background:var(--sur2);color:var(--txt2);border:1px solid var(--brd);}
+.btn-s:hover{border-color:var(--brd2);color:var(--txt);}
+.btn-d{background:var(--rdim);color:var(--red);border:1px solid rgba(224,92,92,.2);}
+.btn-sm{padding:5px 10px;font-size:11.5px;}
+.btn-xs{padding:3px 7px;font-size:11px;}
+
+/* STATS */
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+.sc{background:var(--sur);border:1px solid var(--brd);border-radius:var(--rl);padding:14px;position:relative;overflow:hidden;}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.sc.gold::before{background:var(--acc);}
+.sc.blue::before{background:var(--blu);}
+.sc.green::before{background:var(--grn);}
+.sc.red::before{background:var(--red);}
+.sv{font-size:24px;font-weight:700;font-family:'DM Mono',monospace;}
+.sl{font-size:10.5px;color:var(--txt3);margin-top:3px;}
+.si{position:absolute;right:12px;top:12px;font-size:18px;opacity:.22;}
+
+/* TABLE */
+.twrap{background:var(--sur);border:1px solid var(--brd);border-radius:var(--rl);overflow:hidden;}
+.thead-row{padding:10px 14px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+.thead-row h3{font-size:12.5px;font-weight:600;color:var(--txt);}
+.sbox{background:var(--sur2);border:1px solid var(--brd);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--txt);width:190px;outline:none;transition:all .14s;}
+.sbox:focus{border-color:var(--acc);}
+.sbox::placeholder{color:var(--txt3);}
+table{width:100%;border-collapse:collapse;}
+th{padding:8px 12px;text-align:left;font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.7px;font-weight:600;border-bottom:1px solid var(--brd);background:var(--sur2);white-space:nowrap;}
+td{padding:9px 12px;font-size:12.5px;border-bottom:1px solid var(--brd);color:var(--txt2);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr.cr:hover td{background:var(--sur2);cursor:pointer;}
+.mono{font-family:'DM Mono',monospace;font-size:11.5px;}
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:600;white-space:nowrap;}
+.ba{background:var(--gdim);color:var(--grn);}
+.bp{background:var(--odim);color:var(--org);}
+.bc{background:var(--sur3);color:var(--txt3);}
+.bu{background:var(--rdim);color:var(--red);}
+.bb{background:var(--bdim);color:var(--blu);}
+.bpur{background:var(--pdim);color:var(--pur);}
+.row-acts{display:flex;gap:3px;opacity:0;transition:opacity .14s;}
+tr:hover .row-acts{opacity:1;}
+.ib{background:var(--sur3);border:none;color:var(--txt2);width:24px;height:24px;border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .14s;}
+.ib:hover{background:var(--adim);color:var(--acc);}
+
+/* CHECK ITEMS */
+.chk-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--brd);}
+.chk-row:last-child{border-bottom:none;}
+.chk-label{flex:1;font-size:12.5px;color:var(--txt2);}
+.chk-label.done{color:var(--txt3);text-decoration:line-through;}
+.chkbox{width:16px;height:16px;accent-color:var(--acc);cursor:pointer;flex-shrink:0;}
+.chk-date{font-size:11px;color:var(--acc);font-family:'DM Mono',monospace;background:var(--adim);padding:2px 6px;border-radius:4px;}
+.chk-date.overdue{color:var(--red);background:var(--rdim);}
+.chk-date.soon{color:var(--org);background:var(--odim);}
+
+/* SECTION CARD */
+.sec-card{background:var(--sur);border:1px solid var(--brd);border-radius:var(--rl);margin-bottom:14px;overflow:hidden;}
+.sec-head{padding:10px 14px;background:var(--sur2);border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;}
+.sec-head h3{font-size:12px;font-weight:600;color:var(--txt);display:flex;align-items:center;gap:6px;}
+.sec-body{padding:14px;}
+
+/* FORM */
+.frow{display:grid;gap:12px;margin-bottom:12px;}
+.frow-2{grid-template-columns:1fr 1fr;}
+.frow-3{grid-template-columns:1fr 1fr 1fr;}
+.frow-4{grid-template-columns:1fr 1fr 1fr 1fr;}
+.fg label{display:block;font-size:10.5px;color:var(--txt3);margin-bottom:5px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;}
+.fc{width:100%;background:var(--sur2);border:1px solid var(--brd);border-radius:7px;padding:8px 10px;color:var(--txt);outline:none;transition:all .14s;}
+.fc:focus{border-color:var(--acc);}
+.fc::placeholder{color:var(--txt3);}
+select.fc option{background:var(--sur);}
+textarea.fc{resize:vertical;min-height:70px;}
+.fc-check{display:flex;align-items:center;gap:8px;cursor:pointer;}
+.fc-check input{width:16px;height:16px;accent-color:var(--acc);cursor:pointer;}
+.fc-check span{font-size:12.5px;color:var(--txt2);}
+
+/* MODAL */
+.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .2s;padding:16px;}
+.moverlay.show{opacity:1;pointer-events:all;}
+.modal{background:var(--sur);border:1px solid var(--brd);border-radius:var(--rl);width:100%;max-width:820px;max-height:92vh;overflow-y:auto;transform:translateY(18px);transition:transform .2s;box-shadow:var(--shd);}
+.moverlay.show .modal{transform:translateY(0);}
+.mhead{padding:18px 20px 14px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--sur);z-index:10;}
+.mhead h2{font-family:'Playfair Display',serif;font-size:18px;color:var(--txt);}
+.mclose{background:none;border:none;color:var(--txt3);font-size:20px;cursor:pointer;transition:color .14s;}
+.mclose:hover{color:var(--txt);}
+.mbody{padding:18px 20px;}
+.mfoot{padding:12px 20px;border-top:1px solid var(--brd);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--sur);}
+
+/* TABS */
+.tabs{display:flex;gap:3px;background:var(--sur2);border-radius:7px;padding:3px;border:1px solid var(--brd);margin-bottom:14px;flex-wrap:wrap;}
+.tab{padding:5px 11px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--txt3);transition:all .14s;font-weight:500;}
+.tab.active{background:var(--sur);color:var(--txt);box-shadow:0 1px 4px rgba(0,0,0,.2);}
+
+/* CALENDAR */
+.cal-layout{display:grid;grid-template-columns:1fr 280px;gap:14px;}
+.cal-card{background:var(--sur);border:1px solid var(--brd);border-radius:var(--rl);overflow:hidden;}
+.cal-head{padding:12px 14px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;}
+.cal-navbtn{background:var(--sur2);border:1px solid var(--brd);color:var(--txt2);width:26px;height:26px;border-radius:5px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .14s;}
+.cal-navbtn:hover{border-color:var(--brd2);color:var(--txt);}
+.cal-mlbl{font-size:14px;font-weight:600;color:var(--txt);font-family:'Playfair Display',serif;min-width:150px;text-align:center;}
+.cal-grid{padding:10px;}
+.cdh{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px;}
+.cdhl{text-align:center;font-size:9.5px;color:var(--txt3);font-weight:600;letter-spacing:.4px;padding:2px 0;}
+.cdays{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.cday{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:6px;cursor:pointer;font-size:11.5px;color:var(--txt2);position:relative;transition:all .12s;border:1px solid transparent;}
+.cday:hover{background:var(--sur2);color:var(--txt);}
+.cday.today{background:var(--adim);color:var(--acc);border-color:rgba(201,168,92,.3);font-weight:700;}
+.cday.hasev::after{content:'';position:absolute;bottom:2px;width:4px;height:4px;border-radius:50%;background:var(--acc);}
+.cday.hasev.urgev::after{background:var(--red);}
+.cday.other{color:var(--txt3);opacity:.3;}
+.cday.other.hasev{opacity:.55;}
+.cday.sel{background:var(--acc);color:#0f0e11;font-weight:700;border-color:transparent;}
+.cday.sel::after{background:#0f0e11!important;}
+.ev-panel{display:flex;flex-direction:column;}
+.ev-panel-head{font-size:12.5px;font-weight:600;color:var(--txt);padding:12px 14px 6px;}
+.ev-list{padding:0 10px 10px;display:flex;flex-direction:column;gap:5px;max-height:420px;overflow-y:auto;}
+.ev-item{background:var(--sur2);border:1px solid var(--brd);border-radius:7px;padding:9px 11px;border-left:3px solid var(--acc);position:relative;}
+.ev-item.ev-urg{border-left-color:var(--red);}
+.ev-item.ev-dl{border-left-color:var(--org);}
+.ev-item.ev-mtg{border-left-color:var(--blu);}
+.ev-item.ev-bil{border-left-color:var(--pur);}
+.ev-item.ev-todo{border-left-color:var(--grn);}
+.ev-item.ev-done-todo{border-left-color:var(--txt3);background:var(--sur3);}
+.ev-title{font-size:12px;font-weight:600;color:var(--txt);}
+.ev-meta{font-size:10.5px;color:var(--txt3);margin-top:2px;}
+.ev-del{position:absolute;right:6px;top:6px;background:none;border:none;color:var(--txt3);cursor:pointer;font-size:12px;opacity:0;transition:opacity .14s;}
+.ev-item:hover .ev-del{opacity:1;}
+
+/* USER SELECT */
+.user-select-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9000;flex-direction:column;gap:20px;}
+.us-title{font-family:'Playfair Display',serif;font-size:28px;color:var(--acc);text-align:center;}
+.us-sub{font-size:13px;color:var(--txt3);text-align:center;}
+.us-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:480px;width:100%;padding:0 16px;}
+.us-card{background:var(--sur);border:1px solid var(--brd);border-radius:var(--rl);padding:18px;text-align:center;cursor:pointer;transition:all .2s;}
+.us-card:hover{border-color:var(--acc);background:var(--adim);transform:translateY(-2px);}
+.us-av{width:44px;height:44px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#0f0e11;margin:0 auto 8px;}
+.us-card-name{font-size:13px;font-weight:600;color:var(--txt);}
+
+/* ALARM */
+.alarm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:8000;opacity:0;pointer-events:none;transition:opacity .3s;}
+.alarm-overlay.show{opacity:1;pointer-events:all;}
+.alarm-box{background:var(--sur);border:2px solid var(--red);border-radius:var(--rl);padding:30px;max-width:440px;width:90%;text-align:center;box-shadow:0 0 50px rgba(224,92,92,.35);animation:apulse 1.2s infinite;}
+@keyframes apulse{0%,100%{box-shadow:0 0 40px rgba(224,92,92,.3)}50%{box-shadow:0 0 70px rgba(224,92,92,.6)}}
+.alarm-ico{font-size:44px;margin-bottom:12px;animation:ashake .5s infinite;}
+@keyframes ashake{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+.alarm-title{font-family:'Playfair Display',serif;font-size:20px;color:var(--red);margin-bottom:6px;}
+.alarm-desc{font-size:12.5px;color:var(--txt2);margin-bottom:16px;line-height:1.6;}
+.alarm-list{text-align:left;background:var(--sur2);border-radius:8px;padding:12px;margin-bottom:18px;display:flex;flex-direction:column;gap:7px;max-height:200px;overflow-y:auto;}
+.alarm-ev{font-size:12px;color:var(--txt);display:flex;gap:7px;align-items:flex-start;}
+.alarm-ev::before{content:'⚖️';flex-shrink:0;}
+
+/* TOAST */
+.toast-wrap{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:7px;z-index:7000;}
+.toast{background:var(--sur);border:1px solid var(--brd);border-radius:9px;padding:11px 15px;display:flex;align-items:flex-start;gap:10px;box-shadow:var(--shd);transform:translateX(120%);transition:transform .3s cubic-bezier(.34,1.56,.64,1);max-width:300px;}
+.toast.show{transform:translateX(0);}
+.toast-ico{font-size:16px;flex-shrink:0;margin-top:1px;}
+.toast-body{flex:1;}
+.toast-t{font-size:12.5px;font-weight:600;color:var(--txt);}
+.toast-m{font-size:11.5px;color:var(--txt3);margin-top:1px;}
+.toast-x{background:none;border:none;color:var(--txt3);cursor:pointer;font-size:15px;flex-shrink:0;}
+
+/* DIVIDER */
+.div-title{font-size:11px;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin:16px 0 8px;display:flex;align-items:center;gap:8px;}
+.div-title::after{content:'';flex:1;height:1px;background:var(--brd);}
+
+/* LOG */
+.log-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--brd);}
+.log-item:last-child{border-bottom:none;}
+.log-time{font-size:10.5px;color:var(--txt3);font-family:'DM Mono',monospace;flex-shrink:0;min-width:130px;}
+.log-user{font-size:11px;font-weight:600;color:var(--acc);flex-shrink:0;min-width:90px;}
+.log-act{font-size:12px;color:var(--txt2);}
+
+/* DETAIL VIEW */
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.dfield{background:var(--sur2);border-radius:8px;padding:10px 12px;border:1px solid var(--brd);}
+.dfield label{font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px;font-weight:600;}
+.dfield .dval{font-size:12.5px;color:var(--txt);font-weight:500;}
+.dfield .dval.mono{font-family:'DM Mono',monospace;color:var(--acc);}
+.dfield .dval.empty{color:var(--txt3);font-style:italic;}
+
+/* STATUS INDICATOR */
+.si-wrap{display:flex;align-items:center;gap:5px;font-size:12px;}
+.si-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.si-ok{background:var(--grn);}
+.si-no{background:var(--txt3);}
+.si-warn{background:var(--org);}
+.si-red{background:var(--red);}
+
+/* UPCOMING */
+.up-item{background:var(--sur);border:1px solid var(--brd);border-radius:var(--r);padding:11px 13px;display:flex;align-items:center;gap:11px;margin-bottom:8px;}
+.up-date-box{background:var(--adim);border:1px solid rgba(201,168,92,.2);border-radius:7px;padding:6px 9px;text-align:center;min-width:46px;flex-shrink:0;}
+.up-date-box.urg{background:var(--rdim);border-color:rgba(224,92,92,.2);}
+.upd{font-size:16px;font-weight:700;color:var(--acc);font-family:'DM Mono',monospace;line-height:1;}
+.up-date-box.urg .upd{color:var(--red);}
+.upm{font-size:9.5px;color:var(--txt3);text-transform:uppercase;letter-spacing:.4px;margin-top:1px;}
+.up-info{flex:1;}
+.up-t{font-size:12.5px;font-weight:600;color:var(--txt);}
+.up-s{font-size:11px;color:var(--txt3);margin-top:2px;}
+
+/* EMPTY */
+.empty{text-align:center;padding:36px 16px;color:var(--txt3);}
+.empty .eico{font-size:36px;margin-bottom:10px;opacity:.35;}
+.empty p{font-size:12.5px;}
+
+/* PAGES */
+.page{display:none;}
+.page.active{display:block;}
+
+/* HELPERS */
+.flex{display:flex;align-items:center;gap:8px;}
+.gap4{gap:4px;}
+.mt8{margin-top:8px;}
+.mb8{margin-bottom:8px;}
+.w100{width:100%;}
+.txt-acc{color:var(--acc);}
+.txt-red{color:var(--red);}
+.txt-grn{color:var(--grn);}
+.txt-3{color:var(--txt3);}
+.fw6{font-weight:600;}
+
+/* PRINT */
+@media print{
+  #sidebar,.topbar .tactions,.moverlay,.alarm-overlay,.toast-wrap{display:none!important;}
+  #main{overflow:visible;}
+  .page{display:block!important;}
+}
+
+.hide-mobile { } /* masaüstünde normal */
+
+/* ===== MOBİL RESPONSIVE ===== */
+@media (max-width: 768px) {
+  /* Layout */
+  #app { flex-direction: column; height:auto; min-height:100vh; }
+  #sidebar { width:100%; height:auto; border-right:none; border-bottom:1px solid var(--brd); flex-direction:row; flex-wrap:wrap; align-items:center; }
+  #main { overflow-y:auto; height:calc(100vh - 112px); }
+
+  /* Logo */
+  .logo { padding:10px 14px; border-bottom:none; display:flex; align-items:center; gap:10px; flex:1; }
+  .logo h1 { font-size:16px; }
+  .logo small { display:none; }
+
+  /* Nav — yatay kaydırmalı */
+  .nav { display:flex; flex-direction:row; overflow-x:auto; padding:6px 6px; gap:2px; flex:none; width:100%; border-top:1px solid var(--brd); -webkit-overflow-scrolling:touch; }
+  .nav-sec { display:none; }
+  .ni { flex-shrink:0; padding:7px 10px; font-size:11.5px; white-space:nowrap; }
+  .ni .ico { font-size:13px; width:14px; }
+
+  /* Footer */
+  .sfooter { flex-direction:row; flex-wrap:wrap; gap:4px; padding:6px 10px; border-top:1px solid var(--brd); width:100%; }
+  .user-pill { flex:1; min-width:120px; }
+  .theme-btn { flex:none; padding:6px 10px; font-size:11px; }
+
+  /* Topbar */
+  .topbar { padding:12px 14px 0; flex-wrap:wrap; gap:8px; }
+  .ptitle { font-size:18px; }
+  .tactions { flex-wrap:wrap; gap:6px; width:100%; }
+  .tactions .btn { flex:1; min-width:100px; justify-content:center; }
+  .tactions .sbox { flex:1; min-width:120px; }
+
+  /* Content */
+  .content { padding:10px 14px 20px; }
+
+  /* Stats grid */
+  .sg { grid-template-columns:repeat(2,1fr); gap:8px; }
+  .sv { font-size:20px; }
+
+  /* Tables — yatay kaydırma */
+  .twrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  table { min-width:600px; }
+  th, td { padding:8px 10px; font-size:11.5px; }
+
+  /* Calendar */
+  .cal-layout { grid-template-columns:1fr; }
+  .cday { font-size:11px; }
+
+  /* Tabs */
+  .tabs { overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; }
+  .tab { flex-shrink:0; padding:5px 10px; font-size:11.5px; }
+
+  /* Modal */
+  .moverlay { padding:8px; align-items:flex-end; }
+  .modal { max-height:92vh; border-radius:var(--rl) var(--rl) 0 0; }
+  .mhead h2 { font-size:16px; }
+  .frow-2, .frow-3, .frow-4 { grid-template-columns:1fr; }
+  .frow-2.mobile-2 { grid-template-columns:1fr 1fr; }
+
+  /* Upcoming items */
+  .up-item { padding:9px 11px; }
+  .upd { font-size:14px; }
+
+  /* Chat */
+  #page-chat .content { flex-direction:column; height:auto; }
+  #page-chat .content > div:last-child { width:100%; }
+  #chat-messages { min-height:300px; max-height:45vh; }
+
+  /* Alarm box */
+  .alarm-box { padding:22px 18px; }
+
+  /* Gizli sütunlar */
+  .hide-mobile { display:none !important; }
+
+  /* Badge */
+  .nbadge { font-size:8px; padding:1px 4px; }
+
+  /* Toast */
+  .toast-wrap { left:12px; right:12px; bottom:12px; }
+  .toast { max-width:100%; }
+
+  /* Buttons */
+  .btn { padding:8px 12px; font-size:12.5px; }
+  .btn-sm { padding:6px 10px; font-size:12px; }
+
+  /* Form controls */
+  .fc { font-size:14px; padding:9px 11px; } /* iOS zoom önleme — 16px altı zoom yapar */
+  select.fc { font-size:14px; }
+  input.fc { font-size:14px; }
+  textarea.fc { font-size:14px; }
+  .sbox { font-size:14px; }
+
+  /* Sidebar yedekleme butonları */
+  .sfooter > div:nth-child(2) { width:100%; }
+}
+
+@media (max-width: 480px) {
+  .sg { grid-template-columns:repeat(2,1fr); }
+  .ptitle { font-size:16px; }
+  .tactions .btn { font-size:12px; padding:7px 10px; }
+}
+</style>
+</head>
+<body>
+
+<!-- USER SELECT SCREEN -->
+<div class="user-select-screen" id="user-select">
+  <div style="font-size:36px;margin-bottom:4px;">⚖️</div>
+  <div class="us-title">Maxima</div>
+  <div class="us-sub">Kullanıcınızı seçin</div>
+  <div class="us-grid" id="us-grid"></div>
+  <div style="margin-top:16px;">
+    <button class="btn btn-s btn-sm" onclick="openUserSettings()">⚙️ Kullanıcıları Düzenle</button>
+  </div>
+</div>
+
+<!-- USER SETTINGS MODAL -->
+<div class="moverlay" id="modal-users">
+  <div class="modal" style="max-width:400px;">
+    <div class="mhead"><h2>Kullanıcıları Düzenle</h2><button class="mclose" onclick="closeMod('users')">×</button></div>
+    <div class="mbody">
+      <div id="users-list"></div>
+      <div class="mt8 flex">
+        <input class="fc" id="new-user-input" placeholder="Yeni kullanıcı adı..." style="flex:1;">
+        <button class="btn btn-p btn-sm" onclick="addUser()">+ Ekle</button>
+      </div>
+    </div>
+    <div class="mfoot"><button class="btn btn-s" onclick="closeMod('users')">Kapat</button></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none;">
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="logo"><h1>⚖️ Maxima</h1><small>Avukatlık Yönetim</small></div>
+    <nav class="nav">
+      <div class="nav-sec">Genel</div>
+      <div class="ni active" onclick="goPage('dashboard',this)"><span class="ico">📊</span> Gösterge</div>
+      <div class="ni" onclick="goPage('cases',this)"><span class="ico">📁</span> Dava Dosyaları <span class="nbadge" id="badge-cases" style="display:none">0</span></div>
+      <div class="nav-sec">Araçlar</div>
+      <div class="ni" onclick="goPage('calendar',this)"><span class="ico">📅</span> Takvim <span class="nbadge" id="badge-cal" style="display:none">0</span></div>
+      <div class="ni" onclick="goPage('reminders',this)"><span class="ico">🔔</span> Hatırlatmalar</div>
+      <div class="ni" onclick="goPage('zamanasimi',this)"><span class="ico">⏳</span> Zamanaşımı</div>
+      <div class="ni" onclick="goPage('calls',this)"><span class="ico">📞</span> Aramalar <span class="nbadge" id="badge-calls" style="display:none">0</span></div>
+      <div class="ni" onclick="goPage('todo',this)"><span class="ico">✅</span> Yapılacaklar <span class="nbadge" id="badge-todo" style="display:none">0</span></div>
+      <div class="ni" onclick="goPage('chat',this)"><span class="ico">💬</span> Mesajlaşma <span class="nbadge" id="badge-chat" style="display:none">0</span></div>
+      <div class="ni" onclick="goPage('log',this)"><span class="ico">📋</span> İşlem Geçmişi</div>
+    </nav>
+    <div class="sfooter">
+      <div class="user-pill" onclick="switchUser()">
+        <div class="uav" id="sidebar-av">?</div>
+        <div class="uname" id="sidebar-uname">Kullanıcı</div>
+        <span style="font-size:10px;color:var(--txt3)">↔</span>
+      </div>
+      <div style="display:flex;gap:5px;">
+        <button class="theme-btn" style="flex:1;" onclick="exportData()">💾 Yedekle</button>
+        <button class="theme-btn" style="flex:1;" onclick="document.getElementById('import-file').click()">📂 Yükle</button>
+      </div>
+      <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importData(this)">
+      <button class="theme-btn" onclick="toggleTheme()" id="theme-btn">☀️ Açık Tema</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="topbar">
+        <div><div class="ptitle">Gösterge Paneli</div><div class="psub" id="today-lbl"></div></div>
+        <div class="tactions">
+          <button class="btn btn-p" onclick="openNewCase()">+ Yeni Dava</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="sg">
+          <div class="sc gold"><div class="si">📁</div><div class="sv" id="st-total">0</div><div class="sl">Toplam Dava</div></div>
+          <div class="sc blue"><div class="si">⚡</div><div class="sv" id="st-active">0</div><div class="sl">Aktif Dava</div></div>
+          <div class="sc green"><div class="si">📅</div><div class="sv" id="st-hearings">0</div><div class="sl">Bu Ay Duruşma</div></div>
+          <div class="sc red"><div class="si">⚠️</div><div class="sv" id="st-urgent">0</div><div class="sl">Yaklaşan Tarih (7 gün)</div></div>
+        </div>
+        <div class="div-title">Yaklaşan Tarihler</div>
+        <div id="dashboard-upcoming"></div>
+        <div class="div-title">Son Eklenen Davalar</div>
+        <div class="twrap">
+          <table>
+            <thead><tr><th>Büro No</th><th>Müvekkil</th><th class="hide-mobile">Konu</th><th>Durum</th><th class="hide-mobile">Ekleyen</th></tr></thead>
+            <tbody id="recent-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CASES LIST -->
+    <div id="page-cases" class="page">
+      <div class="topbar">
+        <div><div class="ptitle">Dava Dosyaları</div><div class="psub">Tüm dava ve müvekkil bilgileri</div></div>
+        <div class="tactions">
+          <button class="btn btn-p" onclick="openNewCase()">+ Yeni Dava Ekle</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="tabs">
+          <div class="tab active" onclick="filterCases('all',this)">Tümü</div>
+          <div class="tab" onclick="filterCases('active',this)">Aktif</div>
+          <div class="tab" onclick="filterCases('pending',this)">Beklemede</div>
+          <div class="tab" onclick="filterCases('closed',this)">Kapalı</div>
+          <div class="tab" onclick="filterCases('urgent',this)">Acil</div>
+        </div>
+        <div class="twrap">
+          <div class="thead-row">
+            <h3>Davalar</h3>
+            <input class="sbox" placeholder="🔍 Büro no, müvekkil, telefon, karşı taraf..." oninput="searchCases(this.value)" style="width:280px;">
+          </div>
+          <table>
+            <thead><tr><th>Büro No</th><th>Müvekkil</th><th>Telefon</th><th>Mahkeme</th><th>Konu</th><th>Durum</th><th>Sonraki Tarih</th><th>Ekleyen</th><th></th></tr></thead>
+            <tbody id="cases-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALENDAR -->
+    <div id="page-calendar" class="page">
+      <div class="topbar">
+        <div><div class="ptitle">Takvim</div><div class="psub">Duruşma ve önemli tarihler</div></div>
+        <div class="tactions"><button class="btn btn-p" onclick="openAddEvent()">+ Tarih Ekle</button></div>
+      </div>
+      <div class="content">
+        <div class="cal-layout">
+          <div class="cal-card">
+            <div class="cal-head">
+              <div class="flex gap4">
+                <button class="cal-navbtn" onclick="prevMonth()">‹</button>
+                <div class="cal-mlbl" id="cal-mlbl"></div>
+                <button class="cal-navbtn" onclick="nextMonth()">›</button>
+              </div>
+              <button class="btn btn-s btn-sm" onclick="goToday()">Bugün</button>
+            </div>
+            <div class="cal-grid">
+              <div class="cdh">
+                <div class="cdhl">Pzt</div><div class="cdhl">Sal</div><div class="cdhl">Çar</div>
+                <div class="cdhl">Per</div><div class="cdhl">Cum</div><div class="cdhl">Cmt</div><div class="cdhl">Paz</div>
+              </div>
+              <div class="cdays" id="cdays"></div>
+            </div>
+          </div>
+          <div class="cal-card ev-panel">
+            <div class="ev-panel-head" id="ev-panel-head">Etkinlikler</div>
+            <div class="ev-list" id="ev-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REMINDERS -->
+    <div id="page-reminders" class="page">
+      <div class="topbar">
+        <div><div class="ptitle">Hatırlatmalar</div><div class="psub">Yaklaşan tüm tarihler</div></div>
+      </div>
+      <div class="content">
+        <div class="tabs">
+          <div class="tab active" onclick="filterRem(0,this)">Bugün</div>
+          <div class="tab" onclick="filterRem(3,this)">3 Gün</div>
+          <div class="tab" onclick="filterRem(7,this)">7 Gün</div>
+          <div class="tab" onclick="filterRem(30,this)">30 Gün</div>
+          <div class="tab" onclick="filterRem(999,this)">Tümü</div>
+        </div>
+        <div id="rem-list"></div>
+      </div>
+    </div>
+
+    <!-- ZAMANAŞİMİ -->
+    <div id="page-zamanasimi" class="page">
+      <div class="topbar">
+        <div><div class="ptitle">Zamanaşımı Takibi</div><div class="psub">Zamanaşımı tarihi girilen tüm dosyalar</div></div>
+      </div>
+      <div class="content">
+        <div class="twrap">
+          <div class="thead-row">
+            <h3 id="zamanasimi-count">Yükleniyor...</h3>
+            <input class="sbox" id="za-search" placeholder="🔍 Ara..." oninput="renderZamanasimi()" style="width:200px;">
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Büro No</th>
+                <th>Müvekkil Adı Soyadı</th>
+                <th>Zamanaşımı Tarihi</th>
+                <th>Kalan Gün</th>
+                <th>Durum</th>
+              </tr>
+            </thead>
+            <tbody id="zamanasimi-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALLS -->
+    <div id="page-calls" class="page">
+      <div class="topbar">
+        <div><div class="ptitle">Arama Kayıtları</div><div class="psub">Müvekkil aramaları ve geri dönüş takibi</div></div>
+        <div class="tactions">
+          <select class="sbox" id="call-filter-status" onchange="renderCalls()" style="width:150px;">
+            <option value="all">Tümü</option>
+            <option value="pending">Talep Bekleyen</option>
+            <option value="done">Talep Karşılanan</option>
+          </select>
+          <input class="sbox" id="call-search" placeholder="🔍 Ara..." oninput="renderCalls()" style="width:180px;">
+          <button class="btn btn-p" onclick="openCallModal()">+ Arama Ekle</button>
+        </div>
+      </div>
+      <div class="content">
+        <div id="call-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;"></div>
+        <div class="twrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Tarih / Saat</th>
+                <th>Arayan</th>
+                <th>Telefon</th>
+                <th>İlgili Dava</th>
+                <th class="hide-mobile">Konu</th>
+                <th class="hide-mobile">Kaydeden</th>
+                <th>Talep</th>
+                <th class="hide-mobile">İşlemi Yapan</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="calls-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TODO -->
+    <div id="page-todo" class="page">
+      <div class="topbar">
+        <div><div class="ptitle">Yapılacaklar</div><div class="psub">Dosyadan bağımsız görev takibi</div></div>
+        <div class="tactions">
+          <select class="sbox" id="todo-filter-user" onchange="renderTodos()" style="width:140px;">
+            <option value="all">Tüm Kullanıcılar</option>
+          </select>
+          <button class="btn btn-p" onclick="openTodoModal()">+ Görev Ekle</button>
+        </div>
+      </div>
+      <div class="content">
+        <div id="todo-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;"></div>
+        <div class="tabs">
+          <div class="tab active" onclick="filterTodo(0,this)">Bugün</div>
+          <div class="tab" onclick="filterTodo(3,this)">3 Gün</div>
+          <div class="tab" onclick="filterTodo(7,this)">7 Gün</div>
+          <div class="tab" onclick="filterTodo(30,this)">30 Gün</div>
+          <div class="tab" onclick="filterTodo(999,this)">Tümü</div>
+          <div class="tab" onclick="filterTodo(-1,this)">Tamamlananlar</div>
+        </div>
+        <div id="todo-done-search-wrap" style="display:none;margin-bottom:12px;">
+          <input class="sbox" id="todo-done-search-input" placeholder="🔍 Büro no veya müvekkil adı..." oninput="renderTodos()" style="width:100%;max-width:360px;">
+        </div>
+        <div id="todo-list"></div>
+      </div>
+    </div>
+
+    <!-- CHAT -->
+    <div id="page-chat" class="page">
+      <div class="topbar">
+        <div><div class="ptitle">Mesajlaşma</div><div class="psub">Büro içi iletişim</div></div>
+      </div>
+      <div class="content" style="display:flex;gap:16px;height:calc(100vh - 120px);">
+        <div style="flex:1;display:flex;flex-direction:column;background:var(--sur);border:1px solid var(--brd);border-radius:var(--rl);overflow:hidden;">
+          <div style="padding:10px 14px;border-bottom:1px solid var(--brd);font-size:12.5px;font-weight:600;color:var(--txt);background:var(--sur2);">
+            💬 Grup Sohbeti
+            <span style="font-size:11px;color:var(--txt3);margin-left:8px;" id="chat-online"></span>
+          </div>
+          <div id="chat-messages" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;"></div>
+          <div style="padding:10px 12px;border-top:1px solid var(--brd);display:flex;gap:8px;background:var(--sur2);">
+            <input class="fc" id="chat-input" placeholder="Mesaj yazın..." style="flex:1;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}">
+            <button class="btn btn-p btn-sm" onclick="sendChat()">Gönder ➤</button>
+          </div>
+        </div>
+        <div style="width:200px;background:var(--sur);border:1px solid var(--brd);border-radius:var(--rl);overflow:hidden;">
+          <div style="padding:10px 14px;border-bottom:1px solid var(--brd);font-size:12px;font-weight:600;color:var(--txt);background:var(--sur2);">👥 Kullanıcılar</div>
+          <div id="chat-users" style="padding:10px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOG -->
+    <div id="page-log" class="page">
+      <div class="topbar">
+        <div><div class="ptitle">İşlem Geçmişi</div><div class="psub">Kimin ne yaptığını görün</div></div>
+      </div>
+      <div class="content">
+        <div class="twrap">
+          <div class="thead-row"><h3>Son İşlemler</h3></div>
+          <div style="padding:0 4px;" id="log-list"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- CASE MODAL (New/Edit) -->
+<div class="moverlay" id="modal-case">
+  <div class="modal">
+    <div class="mhead">
+      <h2 id="case-modal-title">Yeni Dava Dosyası</h2>
+      <button class="mclose" onclick="closeMod('case')">×</button>
+    </div>
+    <div class="mbody">
+
+      <!-- TEMEL BİLGİLER -->
+      <div class="div-title">Temel Bilgiler</div>
+      <div class="frow frow-4">
+        <div class="fg"><label>Büro No</label><input class="fc" id="c-buro" placeholder="001"></div>
+        <div class="fg"><label>Durum</label>
+          <select class="fc" id="c-status">
+            <option value="arabulucu">Arabulucuya Başvurulacak</option>
+            <option value="davaacilacak">Dava Açılacak</option>
+            <option value="active">İlk Derece</option>
+            <option value="bam">BAM</option>
+            <option value="infaz">İnfaz</option>
+            <option value="urgent">Acil</option>
+            <option value="closed">Kapalı</option>
+          </select>
+        </div>
+        <div class="fg"><label>Dava Türü</label>
+          <select class="fc" id="c-tur">
+            <option>İşçilik Alacağı</option><option>İşe İade</option><option>İş Kazası</option>
+            <option>Tespit</option><option>Kira</option><option>Boşanma</option>
+            <option>Miras</option><option>Ticaret</option><option>İdare</option>
+            <option>Ceza</option><option>İcra</option><option>Diğer</option>
+          </select>
+        </div>
+        <div class="fg"><label>Mahkeme Kararı</label>
+          <select class="fc" id="c-karar">
+            <option value="">— Devam Ediyor —</option>
+            <option value="kabul">Kabul</option>
+            <option value="red">Red</option>
+            <option value="kismi">Kısmi Kabul</option>
+          </select>
+        </div>
+      </div>
+      <div class="frow frow-3">
+        <div class="fg"><label>Müvekkil Adı Soyadı</label><input class="fc" id="c-muv" placeholder="AD SOYAD" oninput="this.value=this.value.toLocaleUpperCase('tr-TR')"></div>
+        <div class="fg"><label>Müvekkil Telefonu</label><input class="fc" id="c-tel" placeholder="05XX XXX XX XX" oninput="formatPhone(this)" maxlength="14"></div>
+        <div class="fg"><label>Karşı Taraf</label><input class="fc" id="c-karsitaraf" placeholder="AD SOYAD / ŞİRKET" oninput="this.value=this.value.toLocaleUpperCase('tr-TR')"></div>
+      </div>
+      <div class="frow frow-3">
+        <div class="fg"><label>Mahkeme Adı</label><input class="fc" id="c-mahkeme" placeholder="İstanbul İş Mahkemesi..." oninput="this.value=toTitleCase(this.value)"></div>
+        <div class="fg"><label>Esas Numarası</label><input class="fc" id="c-esas" placeholder="2024/1234" oninput="formatEsas(this)" maxlength="20"></div>
+        <div class="fg"></div>
+      </div>
+
+      <!-- ARABULUCULUK & DAVA TARİHLERİ -->
+      <div class="div-title">Arabuluculuk & Dava Tarihleri</div>
+      <div class="frow frow-3">
+        <div class="fg"><label>Arabuluculuğa Başvuru Tarihi</label><input type="date" class="fc" id="c-arabulucu" onchange="handleDateField(this,'Arabuluculuğa Başvuru')"></div>
+        <div class="fg"><label>Dava Açılacak Tarih (Arb. Başarısız)</label><input type="date" class="fc" id="c-dava-ac" onchange="handleDateField(this,'Dava Açılacak Son Gün')"></div>
+        <div class="fg"><label>Zamanaşımı Tarihi</label><input type="date" class="fc" id="c-zamanasimi"></div>
+      </div>
+
+      <!-- GENEL NOT -->
+      <div class="div-title">Genel Not</div>
+      <div class="frow">
+        <div class="fg"><label>Genel Not</label><textarea class="fc" id="c-not" placeholder="Dava hakkında genel notlar..."></textarea></div>
+      </div>
+      <div id="genel-notlar-list" style="margin-bottom:8px;"></div>
+      <button class="btn btn-s btn-sm" onclick="addGenelNot()">+ Tarihli Not Ekle</button>
+
+      <!-- DURUŞMALAR -->
+      <div class="div-title">Duruşma Tarihleri</div>
+      <div id="durusma-list" style="margin-bottom:8px;"></div>
+      <button class="btn btn-s btn-sm" onclick="addDurusma()">+ Duruşma Ekle</button>
+
+      <!-- MÜZEKKEREler -->
+      <div class="div-title">Müzekkere Takibi</div>
+      <div id="muz-list" style="margin-bottom:8px;"></div>
+      <button class="btn btn-s btn-sm" onclick="addMuzekkere()">+ Müzekkere Ekle</button>
+
+      <!-- DELİL -->
+      <div class="div-title">Delil Bildirimi</div>
+      <div class="frow frow-3">
+        <div class="fg"><label>Delil Bildirimi İçin Son Gün</label><input type="date" class="fc" id="c-delil-tarih" onchange="handleDateField(this,'Delil Bildirimi Son Gün')"></div>
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check" style="padding-bottom:2px;">
+            <input type="checkbox" id="c-delil-yapildi">
+            <span>Delil bildirildi ✓</span>
+          </label>
+        </div>
+        <div class="fg"></div>
+      </div>
+
+      <!-- TANIK -->
+      <div class="div-title">Tanık Bildirimi</div>
+      <div class="frow frow-3">
+        <div class="fg"><label>Tanık Bildirimi İçin Son Gün</label><input type="date" class="fc" id="c-tanik-tarih" onchange="handleDateField(this,'Tanık Bildirimi Son Gün')"></div>
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check" style="padding-bottom:2px;">
+            <input type="checkbox" id="c-tanik-yapildi">
+            <span>Tanık bildirildi ✓</span>
+          </label>
+        </div>
+        <div class="fg"></div>
+      </div>
+
+      <!-- TANIK BEYAN -->
+      <div class="div-title">Tanık Beyan</div>
+      <div class="frow frow-3">
+        <div class="fg"><label>Tanık Beyan İçin Son Gün</label><input type="date" class="fc" id="c-beyan-tarih" onchange="handleDateField(this,'Tanık Beyan Son Gün')"></div>
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check" style="padding-bottom:2px;">
+            <input type="checkbox" id="c-beyan-yapildi">
+            <span>Beyanda bulunuldu ✓</span>
+          </label>
+        </div>
+        <div class="fg"></div>
+      </div>
+
+      <!-- GİDER AVANSI -->
+      <div class="div-title">Gider Avansı</div>
+      <div class="frow frow-3">
+        <div class="fg"><label>Yatırılacak Son Gün</label><input type="date" class="fc" id="c-gider-tarih"></div>
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check" style="padding-bottom:2px;">
+            <input type="checkbox" id="c-gider-yapildi">
+            <span>Gider avansı yatırıldı ✓</span>
+          </label>
+        </div>
+        <div class="fg"></div>
+      </div>
+
+      <!-- BİLİRKİŞİ -->
+      <div class="div-title">Bilirkişi</div>
+      <div id="bil-list" style="margin-bottom:8px;"></div>
+      <button class="btn btn-s btn-sm" onclick="addBilirkisi()">+ Bilirkişi Süreci Ekle</button>
+
+      <!-- ISLAH -->
+      <div class="div-title">Islah</div>
+      <div class="frow frow-4">
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check" style="padding-bottom:2px;">
+            <input type="checkbox" id="c-islah-yapilacak">
+            <span>Islah yapılacak</span>
+          </label>
+        </div>
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check" style="padding-bottom:2px;">
+            <input type="checkbox" id="c-islah-yapilmayacak">
+            <span>Islah yapılmayacak</span>
+          </label>
+        </div>
+        <div class="fg"><label>Islah Son Gün</label><input type="date" class="fc" id="c-islah-tarih" onchange="handleDateField(this,'Islah Son Gün')"></div>
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check" style="padding-bottom:2px;">
+            <input type="checkbox" id="c-islah-yapildi">
+            <span>Islah yapıldı ✓</span>
+          </label>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label>Islah Notu</label><textarea class="fc" id="c-islah-not" placeholder="Islah ile ilgili notlar..."></textarea></div>
+      </div>
+
+      <!-- GEREKÇELİ KARAR -->
+      <div class="div-title">Gerekçeli Karar</div>
+      <div class="frow frow-3">
+        <div class="fg"><label>Yazıldığına Dair Kontrol Tarihi</label><input type="date" class="fc" id="c-gk-tarih"></div>
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check" style="padding-bottom:2px;">
+            <input type="checkbox" id="c-gk-yazildi">
+            <span>Gerekçeli karar yazıldı ✓</span>
+          </label>
+        </div>
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check" style="padding-bottom:2px;">
+            <input type="checkbox" id="c-gk-teblig">
+            <span>Gerekçeli Karar Tebliğ Edildi ✓</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- İSTİNAF -->
+      <div class="div-title">İstinaf</div>
+      <div class="frow frow-4">
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check" style="padding-bottom:2px;">
+            <input type="checkbox" id="c-istinaf-yapilacak">
+            <span>İstinaf edilecek</span>
+          </label>
+        </div>
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check" style="padding-bottom:2px;">
+            <input type="checkbox" id="c-istinaf-edilmeyecek">
+            <span>İstinaf edilmeyecek</span>
+          </label>
+        </div>
+        <div class="fg"><label>İstinaf Son Günü</label><input type="date" class="fc" id="c-istinaf-tarih" onchange="handleDateField(this,'İstinaf Son Günü')"></div>
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check" style="padding-bottom:2px;">
+            <input type="checkbox" id="c-istinaf-yapildi">
+            <span>Tarafımızca istinaf edildi ✓</span>
+          </label>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label>İstinaf Açıklama</label><textarea class="fc" id="c-istinaf-aciklama" placeholder="İstinaf ile ilgili açıklama..." rows="2"></textarea></div>
+      </div>
+      <div class="frow frow-3">
+        <div class="fg"><label>Karşı Taraf İstinaf Kontrol Tarihi</label><input type="date" class="fc" id="c-kt-istinaf-tarih"></div>
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check" style="padding-bottom:2px;">
+            <input type="checkbox" id="c-kt-istinaf-yapti">
+            <span>Karşı taraf istinaf etti</span>
+          </label>
+        </div>
+        <div class="fg"></div>
+      </div>
+
+      <!-- İŞE İADE (conditional) -->
+      <div class="div-title">İşe İade (Varsa)</div>
+      <div class="frow frow-3">
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check" style="padding-bottom:2px;">
+            <input type="checkbox" id="c-ihtar-gonderildi">
+            <span>İşverene ihtar gönderildi</span>
+          </label>
+        </div>
+        <div class="fg"><label>İşverenin İşe Başlatma Süre Sonu</label><input type="date" class="fc" id="c-ise-iade-tarih"></div>
+        <div class="fg"><label>Tebliğ Şerhi Alınma Tarihi</label><input type="date" class="fc" id="c-teblig-serhi-tarih"></div>
+      </div>
+
+      <!-- İCRA -->
+      <div class="div-title">İcra Takibi</div>
+      <div class="frow frow-3">
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check" style="padding-bottom:2px;">
+            <input type="checkbox" id="c-icra-yapildi">
+            <span>İcra takibi yapıldı</span>
+          </label>
+        </div>
+        <div class="fg"><label>İcra Dairesi</label><input class="fc" id="c-icra-daire" placeholder="... İcra Müdürlüğü" oninput="this.value=toTitleCase(this.value)"></div>
+        <div class="fg"><label>İcra Esas No</label><input class="fc" id="c-icra-esas" placeholder="2024/1234" oninput="formatEsas(this)" maxlength="20"></div>
+      </div>
+      <div class="frow frow-4">
+        <div class="fg"><label>Tebliğ Kontrol Tarihi</label><input type="date" class="fc" id="c-icra-teblig-tarih"></div>
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check" style="padding-bottom:2px;">
+            <input type="checkbox" id="c-icra-teblig-yapildi">
+            <span>Tebliğ edildi ✓</span>
+          </label>
+        </div>
+        <div class="fg"><label>Teminat Kontrol Tarihi</label><input type="date" class="fc" id="c-teminat-tarih"></div>
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check" style="padding-bottom:2px;">
+            <input type="checkbox" id="c-teminat-yapildi">
+            <span>Teminat yatırıldı ✓</span>
+          </label>
+        </div>
+      </div>
+      <div class="frow frow-2">
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check" style="padding-bottom:2px;">
+            <input type="checkbox" id="c-icra-tahsil">
+            <span>İcra dosyası tahsil edildi ✓</span>
+          </label>
+        </div>
+        <div class="fg"></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label>İcra Notları</label><textarea class="fc" id="c-icra-not" placeholder="İcra ile ilgili notlar..."></textarea></div>
+      </div>
+
+      <!-- NOTLAR PLACEHOLDER - yukarıya taşındı -->
+
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-d btn-sm" id="case-del-btn" style="margin-right:auto;display:none;" onclick="deleteCaseFromModal()">🗑 Sil</button>
+      <button class="btn btn-s" onclick="closeMod('case')">İptal</button>
+      <button class="btn btn-p" onclick="saveCase()">💾 Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- EVENT MODAL -->
+<div class="moverlay" id="modal-event">
+  <div class="modal" style="max-width:480px;">
+    <div class="mhead"><h2>Takvim Olayı Ekle</h2><button class="mclose" onclick="closeMod('event')">×</button></div>
+    <div class="mbody">
+      <div class="frow frow-2">
+        <div class="fg"><label>Başlık</label><input class="fc" id="e-title" placeholder="Duruşma, Toplantı..."></div>
+        <div class="fg"><label>Tarih</label><input type="date" class="fc" id="e-date"></div>
+      </div>
+      <div class="frow frow-2">
+        <div class="fg"><label>Saat</label><input type="time" class="fc" id="e-time" value="09:00"></div>
+        <div class="fg"><label>Tür</label>
+          <select class="fc" id="e-type">
+            <option value="hearing">Duruşma</option>
+            <option value="deadline">Son Tarih</option>
+            <option value="meeting">Toplantı</option>
+            <option value="other">Diğer</option>
+          </select>
+        </div>
+      </div>
+      <div class="frow frow-2">
+        <div class="fg"><label>İlgili Büro/Dava No</label><input class="fc" id="e-case" placeholder="001 (opsiyonel)"></div>
+        <div class="fg"><label>Türü</label>
+          <select class="fc" id="e-priority">
+            <option value="normal">Normal</option>
+            <option value="high">Yüksek</option>
+            <option value="urgent">Acil</option>
+          </select>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label>Açıklama</label><textarea class="fc" id="e-desc" placeholder="Ek bilgi..."></textarea></div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="closeMod('event')">İptal</button>
+      <button class="btn btn-p" onclick="saveEvent()">💾 Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- CALL MODAL -->
+<div class="moverlay" id="modal-call">
+  <div class="modal" style="max-width:520px;">
+    <div class="mhead"><h2 id="call-modal-title">Arama Kaydı Ekle</h2><button class="mclose" onclick="closeMod('call')">×</button></div>
+    <div class="mbody">
+      <div class="frow frow-2">
+        <div class="fg"><label>Arayan Kişi</label><input class="fc" id="cl-name" placeholder="Ad Soyad"></div>
+        <div class="fg"><label>Telefon</label><input class="fc" id="cl-phone" placeholder="05XX XXX XX XX"></div>
+      </div>
+      <div class="frow frow-2">
+        <div class="fg"><label>Arama Tarihi</label><input type="date" class="fc" id="cl-date"></div>
+        <div class="fg"><label>Arama Saati</label><input type="time" class="fc" id="cl-time"></div>
+      </div>
+      <div class="frow frow-2">
+        <div class="fg"><label>İlgili Büro No / Dava</label><input class="fc" id="cl-case" placeholder="001 (opsiyonel)"></div>
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check" style="padding-bottom:4px;">
+            <input type="checkbox" id="cl-talep">
+            <span>Talep Karşılandı ✓</span>
+          </label>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label>Konu / Not</label><textarea class="fc" id="cl-note" placeholder="Aramanın konusu, müvekkilin talebi..." rows="3"></textarea></div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-d btn-sm" id="call-del-btn" style="margin-right:auto;display:none;" onclick="deleteCallFromModal()">🗑 Sil</button>
+      <button class="btn btn-s" onclick="closeMod('call')">İptal</button>
+      <button class="btn btn-p" onclick="saveCall()">💾 Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- TODO MODAL -->
+<div class="moverlay" id="modal-todo">
+  <div class="modal" style="max-width:500px;">
+    <div class="mhead"><h2 id="todo-modal-title">Yeni Görev</h2><button class="mclose" onclick="closeMod('todo')">×</button></div>
+    <div class="mbody">
+      <div class="frow">
+        <div class="fg"><label>Görev Başlığı</label><input class="fc" id="td-title" placeholder="Görev açıklaması..."></div>
+      </div>
+      <div class="frow frow-3">
+        <div class="fg"><label>Öncelik</label>
+          <select class="fc" id="td-priority">
+            <option value="normal">Genel</option>
+            <option value="high">Süreli İş</option>
+            <option value="reminder">Hatırlatma</option>
+            <option value="urgent">Acil</option>
+          </select>
+        </div>
+        <div class="fg"><label>Son Tarih</label><input type="date" class="fc" id="td-due"></div>
+        <div class="fg"><label>Atanan Kişi</label>
+          <select class="fc" id="td-assign"></select>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label>Not</label><textarea class="fc" id="td-note" placeholder="Ek açıklama..." rows="3"></textarea></div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-d btn-sm" id="todo-del-btn" style="margin-right:auto;display:none;" onclick="deleteTodoFromModal()">🗑 Sil</button>
+      <button class="btn btn-s" onclick="closeMod('todo')">İptal</button>
+      <button class="btn btn-p" onclick="saveTodo()">💾 Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- ALARM -->
+<div class="alarm-overlay" id="alarm-overlay">
+  <div class="alarm-box">
+    <div class="alarm-ico">⏰</div>
+    <div class="alarm-title">⚠️ Dikkat Gerektiren Tarihler</div>
+    <div class="alarm-desc">Aşağıdaki görevler bugün veya çok yakında gerçekleşecek.</div>
+    <div class="alarm-list" id="alarm-list"></div>
+    <button class="btn btn-p" onclick="closeAlarm()">✓ Tamam, Anladım</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+// =========================================================
+// API KATMANI
+// =========================================================
+const API = {
+  async get(resource) {
+    const r = await fetch('/api/' + resource);
+    if(!r.ok) throw new Error('API error: ' + r.status);
+    return r.json();
+  },
+  async post(resource, data) {
+    const r = await fetch('/api/' + resource, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+    return r.json();
+  },
+  async put(resource, id, data) {
+    const url = id ? '/api/' + resource + '/' + id : '/api/' + resource;
+    const r = await fetch(url, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+    return r.json();
+  },
+  async del(resource, id, user) {
+    const r = await fetch('/api/' + resource + '/' + id + '?user=' + encodeURIComponent(user||''), {
+      method: 'DELETE'
+    });
+    return r.json();
+  }
+};
+
+async function loadAllData() {
+  const [c, e, t, ca, ch, u, s] = await Promise.all([
+    API.get('cases'), API.get('events'), API.get('todos'),
+    API.get('calls'), API.get('chat'), API.get('users'),
+    API.get('settings')
+  ]);
+  cases = c || []; events = e || []; todos = t || []; calls = ca || [];
+  chatMsgs = ch || []; users = u || [];
+  if(s && s.theme) settings = {...settings, ...s};
+  lastChatLen = chatMsgs.length;
+}
+
+
+// =========================================================
+// DATA
+// =========================================================
+let cases = [];
+let events = [];
+let users = ['Av. 1','Av. 2','Av. 3','Av. 4','Av. 5'];
+let logs = [];
+let settings = {theme:'dark', alarmDays:3};
+let currentUser = null;
+let editingCaseId = null;
+let caseFilter = 'all', caseSearch = '';
+let calYear, calMonth, selDay = null;
+let remFilter = 7;
+
+// Temp arrays for modal sub-lists
+let tmpDurusmalar = [];
+let tmpMuzekkere = [];
+let tmpGenelNotlar = [];
+let tmpBilirkisi = [];
+
+const now = new Date();
+calYear = now.getFullYear();
+calMonth = now.getMonth();
+
+const TR_MONTHS = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+
+function save() {
+  // Sunucu versiyonunda veri sync fonksiyonlarıyla kaydedilir
+  // Hızlı işlemler için lokal kopyalar güncellenir, arka planda sync yapılır
+  syncToServer();
+}
+
+let syncTimer = null;
+function syncToServer() {
+  // Debounce — 500ms sonra sync yap
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(async () => {
+    try {
+      await Promise.all([
+        API.put('cases', null, cases),
+        API.put('events', null, events),
+        API.put('todos', null, todos),
+        API.put('calls', null, calls),
+        API.put('logs', null, logs.slice(-500)),
+      ]);
+    } catch(e) { console.warn('Sync error:', e); }
+  }, 500);
+}
+
+async function saveSettings() {
+  await API.post('settings', settings);
+}
+
+async function saveUsers() {
+  await API.put('users', null, users);
+}
+
+function addLog(action, detail) {
+  logs.push({ ts: new Date().toISOString(), user: currentUser || '?', action, detail });
+  save();
+}
+
+// =========================================================
+// USER SYSTEM
+// =========================================================
+function initUserSelect() {
+  applyTheme();
+  const g = document.getElementById('us-grid');
+  g.innerHTML = users.map((u,i) => `
+    <div class="us-card" onclick="selectUser(${i})">
+      <div class="us-av">${getInitials(u)}</div>
+      <div class="us-card-name">${u}</div>
+    </div>`).join('');
+}
+
+function getInitials(name) {
+  return name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+}
+
+function selectUser(idx) {
+  currentUser = users[idx];
+  document.getElementById('user-select').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('sidebar-uname').textContent = currentUser;
+  document.getElementById('sidebar-av').textContent = getInitials(currentUser);
+  document.getElementById('today-lbl').textContent = now.toLocaleDateString('tr-TR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  // Eski auto event'leri temizle (artık getAllDates'ten okunuyor)
+  events = events.filter(e=>!e.auto);
+  save();
+  updateStats();
+  renderRecentCases();
+  renderDashboardUpcoming();
+  renderCasesTable();
+  renderCalendar();
+  renderReminders();
+  renderLog();
+  updateTodoBadge();
+  updateCallsBadge();
+  startChatSync();
+  checkAlarms();
+}
+
+function switchUser() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('user-select').style.display = 'flex';
+  currentUser = null;
+  initUserSelect();
+}
+
+function openUserSettings() {
+  renderUsersList();
+  openMod('users');
+}
+
+function renderUsersList() {
+  document.getElementById('users-list').innerHTML = users.map((u,i) => `
+    <div class="flex" style="padding:6px 0;border-bottom:1px solid var(--brd);gap:8px;">
+      <input class="fc" style="flex:1;" id="uinput-${i}" value="${u}" placeholder="Kullanıcı adı...">
+      <button class="btn btn-p btn-xs" onclick="saveUserEdit(${i})">✓ Kaydet</button>
+      <button class="ib" onclick="removeUser(${i})">🗑</button>
+    </div>`).join('');
+}
+
+async function saveUserEdit(i) {
+  const el = document.getElementById('uinput-'+i);
+  const val = el ? el.value.trim() : '';
+  if(!val){ showToast('⚠️','Hata','İsim boş olamaz.'); return; }
+  users[i] = val;
+  await API.put('users', null, users);
+  initUserSelect();
+  showToast('✅','Kaydedildi', val + ' güncellendi.');
+}
+function removeUser(i) {
+  if(users.length <= 1){ showToast('⚠️','Uyarı','En az 1 kullanıcı olmalı.'); return; }
+  users.splice(i,1); save(); renderUsersList(); initUserSelect();
+}
+async function addUser() {
+  const v = document.getElementById('new-user-input').value.trim();
+  if(!v) return;
+  users.push(v);
+  await API.put('users', null, users);
+  document.getElementById('new-user-input').value = '';
+  renderUsersList(); initUserSelect();
+  showToast('✅','Eklendi',v + ' eklendi.');
+}
+
+// =========================================================
+// THEME
+// =========================================================
+function applyTheme() {
+  document.body.classList.toggle('light', settings.theme === 'light');
+  const btn = document.getElementById('theme-btn');
+  if(btn) btn.textContent = settings.theme === 'dark' ? '☀️ Açık Tema' : '🌙 Koyu Tema';
+}
+function toggleTheme() {
+  settings.theme = settings.theme === 'dark' ? 'light' : 'dark';
+  applyTheme(); save();
+}
+
+// =========================================================
+// NAVIGATION
+// =========================================================
+function goPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  // Mobilde en üste scroll
+  const main = document.getElementById('main');
+  if(main) main.scrollTop = 0;
+  if(id==='calendar') renderCalendar();
+  if(id==='reminders') renderReminders();
+  if(id==='log') renderLog();
+  if(id==='zamanasimi') renderZamanasimi();
+  if(id==='calls') { renderCalls(); updateCallsBadge(); }
+  if(id==='todo') { renderTodos(); populateTodoFilterUser(); }
+  if(id==='chat') {
+    // Chat mesajları zaten API'den yüklendi
+    lastChatLen = chatMsgs.length;
+    renderChat(); renderChatUsers(); scrollChat();
+    const b = document.getElementById('badge-chat');
+    if(b){ b.style.display='none'; b.textContent='0'; }
+  }
+}
+
+// =========================================================
+// STATS & DASHBOARD
+// =========================================================
+function updateStats() {
+  document.getElementById('st-total').textContent = cases.length;
+  document.getElementById('st-active').textContent = cases.filter(c=>c.status==='active'||c.status==='urgent').length;
+  const thisM = events.filter(e=>{
+    const d=new Date(e.date); return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()&&e.type==='hearing';
+  });
+  document.getElementById('st-hearings').textContent = thisM.length;
+  const upcoming7 = getAllDates().filter(d=>{ const diff=daysDiff(d.date); return diff>=0&&diff<=7; });
+  document.getElementById('st-urgent').textContent = upcoming7.length;
+  const bc = document.getElementById('badge-cases');
+  bc.textContent = cases.length; bc.style.display = cases.length?'':'none';
+  const ba = document.getElementById('badge-cal');
+  const t = getAllDates().filter(d=>daysDiff(d.date)===0).length;
+  ba.textContent = t; ba.style.display = t?'':'none';
+}
+
+function renderDashboardUpcoming() {
+  const cont = document.getElementById('dashboard-upcoming');
+  const allUp = getAllDates().filter(d=>{ const diff=daysDiff(d.date); return diff>=0&&diff<=14; });
+  const urgUp = allUp.filter(d=>d.todoPriority==='urgent'||d.todoPriority==='high').sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const normUp = allUp.filter(d=>d.type!=='hearing'&&d.todoPriority!=='urgent'&&d.todoPriority!=='high').sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const hearUp = allUp.filter(d=>d.type==='hearing').sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const dates = [...urgUp, ...normUp, ...hearUp].slice(0,8);
+  if(!dates.length){ cont.innerHTML='<div class="empty"><div class="eico">📅</div><p>Yaklaşan tarih yok</p></div>'; return; }
+  cont.innerHTML = dates.map(d=>renderUpItem(d)).join('');
+}
+
+function renderRecentCases() {
+  const tb = document.getElementById('recent-tbody');
+  const recent = [...cases].sort((a,b)=>b.createdAt-a.createdAt).slice(0,5);
+  if(!recent.length){ tb.innerHTML='<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--txt3)">Henüz dava yok</td></tr>'; return; }
+  tb.innerHTML = recent.map(c=>`
+    <tr class="cr" onclick="openEditCase('${c.id}')">
+      <td><span class="mono txt-acc">${c.buro||'—'}</span></td>
+      <td class="fw6" style="color:var(--txt)">${c.muv||'—'}</td>
+      <td class="hide-mobile" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.konu||'—'}</td>
+      <td>${statusBadge(c.status)}</td>
+      <td class="hide-mobile" style="font-size:11px;color:var(--txt3)">${c.createdBy||'—'}</td>
+    </tr>`).join('');
+}
+
+// =========================================================
+// ALL DATES (from cases + events)
+// =========================================================
+function getAllDates() {
+  const result = [];
+  // Events
+  events.forEach(e => {
+    result.push({ date: e.date, title: e.title, sub: e.time||(e.caseNo?'Büro: '+e.caseNo:''), priority: e.priority, type: e.type });
+  });
+  // Case dates
+  cases.forEach(c => {
+    const add = (date, label, type='deadline', priority='normal') => {
+      if(date && date.trim()) result.push({ date: date.trim(), title: label, sub: 'Büro: '+(c.buro||'?')+' — '+(c.muv||''), priority, type, caseId: c.id });
+    };
+    // Yapılacaklar üzerinden takvime yansıyanlar burada YOK (çift gösterim önlemi):
+    // arabulucu, davaAc, delilTarih, tanikTarih, beyanTarih, islahTarih, istinafTarih, bilirkisiBeyan
+    // Bunlar sadece Yapılacaklar'dan takvime giriyor.
+    // Doğrudan takvime işlenenler:
+    add(c.zamanasimi, '⏳ Zamanaşımı', 'deadline', 'urgent');
+    add(c.giderTarih, '💰 Gider Avansı Son Gün', 'deadline', 'high');
+    add(c.gkTarih, '📜 Gerekçeli Karar Kontrol', 'other', 'normal');
+    add(c.ktIstinafTarih, '👁 Karşı Taraf İstinaf Kontrol', 'other', 'normal');
+    add(c.iseIadeTarih, '🏢 İşe Başlatma Süre Sonu', 'deadline', 'urgent');
+    add(c.tebligSerhiTarih, '📋 Tebliğ Şerhi Alınma', 'deadline', 'normal');
+    add(c.icraTebligTarih, '📨 İcra Tebliğ Kontrol', 'other', 'normal');
+    add(c.teminatTarih, '🔒 Teminat Kontrol', 'other', 'normal');
+    (c.durusmalar||[]).forEach(d => { if(d.tarih) result.push({ date: d.tarih.trim(), title: '🏛 Duruşma — ' + (c.muv||'') + (d.saat?' '+d.saat:''), sub: 'Büro: '+(c.buro||'?')+' — '+d.saat, priority: 'low', type: 'hearing', noAlarm: true }); });
+    (c.muzekkere||[]).forEach(m => {
+      if(m.hatirlatma) add(m.hatirlatma, `📋 Müzekkere Hatırlatma: ${m.ad}`, 'deadline', 'normal');
+    });
+    (c.genelNotlar||[]).forEach(n => {
+      if(n.tarih) add(n.tarih, `📌 Not: ${(n.metin||'').substring(0,30)}`, 'other', 'normal');
+    });
+  });
+  // Todo tarihleri
+  const priMap = {urgent:'urgent', high:'high', normal:'normal'};
+  todos.forEach(t => {
+    if(t.due && t.due.trim()) {
+      result.push({
+        date: t.due.trim(),
+        title: (t.done ? '~~' : '') + '✅ ' + t.title + (t.done ? '~~' : ''),
+        sub: (t.assignTo ? '👤 ' + t.assignTo : '') + (t.createdBy ? ' · ' + t.createdBy : ''),
+        priority: priMap[t.priority] || 'normal',
+        type: 'todo',
+        todoDone: t.done,
+        todoPriority: t.priority
+      });
+    }
+  });
+  return result;
+}
+
+function daysDiff(dateStr) {
+  if(!dateStr) return 9999;
+  const d = new Date(dateStr); d.setHours(0,0,0,0);
+  const t = new Date(); t.setHours(0,0,0,0);
+  return Math.round((d-t)/86400000);
+}
+
+function renderUpItem(d) {
+  const dt = new Date(d.date);
+  const diff = daysDiff(d.date);
+  const isUrg = d.priority==='urgent'||diff===0||diff===1;
+  const diffLbl = diff===0?'<span class="txt-red fw6">Bugün</span>':diff===1?'<span style="color:var(--org)">Yarın</span>':'<span class="txt-3">'+diff+' gün sonra</span>';
+  return `<div class="up-item">
+    <div class="up-date-box ${isUrg?'urg':''}">
+      <div class="upd">${dt.getDate()}</div>
+      <div class="upm">${TR_MONTHS[dt.getMonth()].slice(0,3)}</div>
+    </div>
+    <div class="up-info">
+      <div class="up-t" style="${d.todoPriority&&(d.todoPriority==='urgent'||d.todoPriority==='high')&&!d.todoDone?'color:var(--red);font-weight:700;':''}">${d.type==='todo'?d.title.replace(/~~/g,''):d.title}</div>
+      <div class="up-s">${diffLbl} · ${d.sub||''}</div>
+    </div>
+  </div>`;
+}
+
+// =========================================================
+// CASES TABLE
+// =========================================================
+function statusBadge(s) {
+  const map = {arabulucu:'bb',davaacilacak:'bu',active:'ba',bam:'bp',infaz:'bc',urgent:'bu',closed:'bc'};
+  const lbl = {arabulucu:'Arabulucuya Başvurulacak',davaacilacak:'Dava Açılacak',active:'İlk Derece',bam:'BAM',infaz:'İnfaz',urgent:'Acil',closed:'Kapalı'};
+  return `<span class="badge ${map[s]||'bc'}">${lbl[s]||s}</span>`;
+}
+
+function renderCasesTable() {
+  const tb = document.getElementById('cases-tbody');
+  let list = [...cases];
+  if(caseFilter!=='all') list = list.filter(c=>c.status===caseFilter);
+  if(caseSearch) list = list.filter(c=>(c.buro+c.muv+c.tel+c.mahkeme+c.konu+c.karsitaraf).toLowerCase().includes(caseSearch.toLowerCase()));
+  list.sort((a,b)=>(a.buro||'').localeCompare(b.buro||''));
+  if(!list.length){ tb.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--txt3)">Sonuç bulunamadı</td></tr>'; return; }
+  tb.innerHTML = list.map(c=>{
+    const nextDate = getNextDate(c);
+    const nextLbl = nextDate ? `<span class="${daysDiff(nextDate)<=3?'txt-red':daysDiff(nextDate)<=7?'txt-acc':''} mono" style="font-size:11px;">${fmtDate(nextDate)}</span>` : '—';
+    return `<tr class="cr" onclick="openEditCase('${c.id}')">
+      <td><span class="mono txt-acc fw6">${c.buro||'—'}</span></td>
+      <td class="fw6" style="color:var(--txt)">${c.muv||'—'}</td>
+      <td style="font-size:11.5px;">${c.tel||'—'}</td>
+      <td class="hide-mobile" style="font-size:11.5px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.mahkeme||'—'}</td>
+      <td class="hide-mobile" style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.konu||'—'}</td>
+      <td>${statusBadge(c.status)}</td>
+      <td class="hide-mobile">${nextLbl}</td>
+      <td class="hide-mobile" style="font-size:11px;color:var(--txt3)">${c.createdBy||'—'}</td>
+      <td><div class="row-acts">
+        <button class="ib" onclick="event.stopPropagation();openEditCase('${c.id}')">✏️</button>
+        <button class="ib" onclick="event.stopPropagation();deleteCase('${c.id}')">🗑</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function getNextDate(c) {
+  const dates = [c.arabulucu, c.davaAc, c.zamanasimi, c.delilTarih, c.beyanTarih, c.giderTarih, c.bilBeyanTarih, c.islahTarih, c.istinafTarih];
+  (c.durusmalar||[]).forEach(d=>dates.push(d.tarih));
+  const today = new Date(); today.setHours(0,0,0,0);
+  const future = dates.filter(d=>d && new Date(d)>=today).sort();
+  return future[0] || null;
+}
+
+function filterCases(f, el) {
+  caseFilter = f;
+  document.querySelectorAll('.tabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderCasesTable();
+}
+function searchCases(v) { caseSearch = v; renderCasesTable(); }
+function fmtDate(d) {
+  if(!d) return '—';
+  try {
+    const dt = new Date(d);
+    if(isNaN(dt.getTime())) return d;
+    const dd = String(dt.getDate()).padStart(2,'0');
+    const mm = String(dt.getMonth()+1).padStart(2,'0');
+    const yyyy = dt.getFullYear();
+    return `${dd}.${mm}.${yyyy}`;
+  } catch(e) { return d; }
+}
+
+// =========================================================
+// CASE MODAL
+// =========================================================
+function openNewCase() {
+  editingCaseId = null;
+  document.getElementById('case-modal-title').textContent = 'Yeni Dava Dosyası';
+  document.getElementById('case-del-btn').style.display = 'none';
+  resetCaseForm();
+  openMod('case');
+}
+
+function openEditCase(id) {
+  editingCaseId = id;
+  const c = cases.find(x=>x.id===id);
+  if(!c) return;
+  document.getElementById('case-modal-title').textContent = 'Dava Düzenle — ' + (c.buro||'') + ' / ' + (c.muv||'');
+  document.getElementById('case-del-btn').style.display = 'inline-flex';
+  fillCaseForm(c);
+  openMod('case');
+}
+
+function resetCaseForm() {
+  const ids = ['c-buro','c-muv','c-tel','c-karsitaraf','c-mahkeme','c-esas',
+    'c-arabulucu','c-dava-ac','c-zamanasimi','c-delil-tarih','c-tanik-tarih','c-beyan-tarih',
+    'c-gider-tarih','c-islah-tarih','c-islah-not','c-istinaf-aciklama',
+    'c-gk-tarih','c-istinaf-tarih','c-kt-istinaf-tarih','c-ise-iade-tarih','c-teblig-serhi-tarih',
+    'c-icra-daire','c-icra-esas','c-icra-teblig-tarih','c-teminat-tarih','c-icra-not','c-not'];
+  ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const chks = ['c-delil-yapildi','c-tanik-yapildi','c-beyan-yapildi','c-gider-yapildi',
+    'c-islah-yapilacak','c-islah-yapilmayacak','c-islah-yapildi','c-gk-yazildi','c-gk-teblig',
+    'c-istinaf-yapilacak','c-istinaf-edilmeyecek','c-istinaf-yapildi','c-kt-istinaf-yapti','c-ihtar-gonderildi',
+    'c-icra-yapildi','c-icra-teblig-yapildi','c-teminat-yapildi','c-icra-tahsil',
+    'c-bil-gitti','c-bil-dondu','c-bil-beyan-yapildi'];
+  chks.forEach(id=>{ const el=document.getElementById(id); if(el) el.checked=false; });
+  document.getElementById('c-status').value='active';
+  document.getElementById('c-tur').value='İşçilik Alacağı';
+  document.getElementById('c-karar').value='';
+  tmpDurusmalar = []; tmpMuzekkere = []; tmpGenelNotlar = []; tmpBilirkisi = [];
+  renderDurusmaList(); renderMuzList(); renderGenelNotList(); renderBilList();
+}
+
+function fillCaseForm(c) {
+  const set = (id, v) => { const el=document.getElementById(id); if(el&&v!==undefined&&v!==null) el.value=v; };
+  const chk = (id, v) => { const el=document.getElementById(id); if(el) el.checked=!!v; };
+  set('c-buro',c.buro); set('c-muv',c.muv); set('c-tel',c.tel);
+  set('c-karsitaraf',c.karsitaraf); set('c-mahkeme',c.mahkeme); set('c-esas',c.esas);
+  set('c-konu',c.konu); set('c-status',c.status); set('c-tur',c.tur); set('c-karar',c.karar||'');
+
+  set('c-arabulucu',c.arabulucu);
+  set('c-dava-ac',c.davaAc);
+  set('c-zamanasimi', c.zamanasimi);
+  set('c-delil-tarih',c.delilTarih); chk('c-delil-yapildi',c.delilYapildi);
+  set('c-beyan-tarih',c.beyanTarih); chk('c-beyan-yapildi',c.beyanYapildi);
+  set('c-gider-tarih',c.giderTarih); chk('c-gider-yapildi',c.giderYapildi);
+  chk('c-bil-gitti',c.bilGitti); chk('c-bil-dondu',c.bilDondu);
+  set('c-bil-beyan-tarih',c.bilBeyanTarih); chk('c-bil-beyan-yapildi',c.bilBeyanYapildi);
+  chk('c-islah-yapilacak',c.islahYapilacak); set('c-islah-tarih',c.islahTarih);
+  chk('c-islah-yapildi',c.islahYapildi); set('c-islah-not',c.islahNot);
+  set('c-gk-tarih',c.gkTarih); chk('c-gk-yazildi',c.gkYazildi);
+  chk('c-istinaf-yapilacak',c.istinafYapilacak); set('c-istinaf-tarih',c.istinafTarih);
+  chk('c-istinaf-yapildi',c.istinafYapildi);
+  set('c-kt-istinaf-tarih',c.ktIstinafTarih); chk('c-kt-istinaf-yapti',c.ktIstinafYapti);
+  chk('c-ihtar-gonderildi',c.ihtarGonderildi); set('c-ise-iade-tarih',c.iseIadeTarih);
+  chk('c-icra-yapildi',c.icraYapildi); set('c-icra-daire',c.icraDaire);
+  set('c-icra-esas',c.icraEsas); set('c-icra-teblig-tarih',c.icraTebligTarih);
+  chk('c-icra-teblig-yapildi',c.icraTebligYapildi); set('c-teminat-tarih',c.teminatTarih);
+  chk('c-teminat-yapildi',c.teminatYapildi); chk('c-icra-tahsil',c.icraTahsil);
+  set('c-icra-not',c.icraNot); set('c-not',c.not);
+  tmpDurusmalar = JSON.parse(JSON.stringify(c.durusmalar||[]));
+  tmpMuzekkere = JSON.parse(JSON.stringify(c.muzekkere||[]));
+  tmpGenelNotlar = JSON.parse(JSON.stringify(c.genelNotlar||[]));
+  renderDurusmaList(); renderMuzList(); renderGenelNotList();
+}
+
+function readCaseForm() {
+  const g = id => document.getElementById(id)?.value || '';
+  const c = id => document.getElementById(id)?.checked || false;
+  return {
+    buro:g('c-buro'), muv:g('c-muv'), tel:g('c-tel'), karsitaraf:g('c-karsitaraf'),
+    mahkeme:g('c-mahkeme'), esas:g('c-esas'), konu:g('c-konu'),
+    status:g('c-status'), tur:g('c-tur'), karar:g('c-karar'),
+    arabulucu: g('c-arabulucu'),
+    davaAc: g('c-dava-ac'),
+    zamanasimi:g('c-zamanasimi'),
+    delilTarih: g('c-delil-tarih'), delilYapildi:c('c-delil-yapildi'),
+    tanikTarih: g('c-tanik-tarih'), tanikYapildi:c('c-tanik-yapildi'),
+    beyanTarih: g('c-beyan-tarih'), beyanYapildi:c('c-beyan-yapildi'),
+    giderTarih:g('c-gider-tarih'), giderYapildi:c('c-gider-yapildi'),
+    bilirkisiList: tmpBilirkisi,
+    islahYapilacak:c('c-islah-yapilacak'), islahYapilmayacak:c('c-islah-yapilmayacak'), islahTarih: g('c-islah-tarih'),
+    islahYapildi:c('c-islah-yapildi'), islahNot:g('c-islah-not'),
+    gkTarih:g('c-gk-tarih'), gkYazildi:c('c-gk-yazildi'), gkTeblig:c('c-gk-teblig'),
+    istinafYapilacak:c('c-istinaf-yapilacak'), istinafEdilmeyecek:c('c-istinaf-edilmeyecek'), istinafTarih: g('c-istinaf-tarih'),
+    istinafYapildi:c('c-istinaf-yapildi'), istinafAciklama:g('c-istinaf-aciklama'),
+    ktIstinafTarih:g('c-kt-istinaf-tarih'), ktIstinafYapti:c('c-kt-istinaf-yapti'),
+    ihtarGonderildi:c('c-ihtar-gonderildi'), iseIadeTarih:g('c-ise-iade-tarih'), tebligSerhiTarih:g('c-teblig-serhi-tarih'),
+    icraYapildi:c('c-icra-yapildi'), icraDaire:g('c-icra-daire'), icraEsas:g('c-icra-esas'),
+    icraTebligTarih:g('c-icra-teblig-tarih'), icraTebligYapildi:c('c-icra-teblig-yapildi'),
+    teminatTarih:g('c-teminat-tarih'), teminatYapildi:c('c-teminat-yapildi'),
+    icraTahsil:c('c-icra-tahsil'), icraNot:g('c-icra-not'), not:g('c-not'),
+    durusmalar: tmpDurusmalar, muzekkere: tmpMuzekkere, genelNotlar: tmpGenelNotlar, bilirkisiList: tmpBilirkisi
+  };
+}
+
+function saveCase() {
+  const data = readCaseForm();
+  data.muv = (data.muv||'').toLocaleUpperCase('tr-TR');
+  data.karsitaraf = (data.karsitaraf||'').toLocaleUpperCase('tr-TR');
+  if(!data.buro || !data.muv){ showToast('⚠️','Eksik','Büro No ve Müvekkil adı zorunlu.'); return; }
+  if(editingCaseId) {
+    const old = cases.find(c=>c.id===editingCaseId);
+    cases = cases.map(c => c.id===editingCaseId ? { ...c, ...data, updatedAt: Date.now(), updatedBy: currentUser } : c);
+    addLog('Dava Güncellendi', `Büro: ${data.buro} — ${data.muv}`);
+    // sync events
+    syncCaseEvents(editingCaseId, data);
+  } else {
+    const newCase = { ...data, id: Date.now().toString(), createdAt: Date.now(), createdBy: currentUser };
+    cases.push(newCase);
+    addLog('Yeni Dava Eklendi', `Büro: ${data.buro} — ${data.muv}`);
+    syncCaseEvents(newCase.id, data);
+  }
+  save(); closeMod('case');
+  showToast('✅','Kaydedildi', data.muv + ' davası kaydedildi.');
+  updateStats(); renderRecentCases(); renderCasesTable(); renderCalendar(); renderDashboardUpcoming();
+}
+
+function syncCaseEvents(caseId, data) {
+  // Artık case tarihleri getAllDates() üzerinden okunuyor.
+  // Sadece eski auto-event'leri temizle, yeni ekleme yapma.
+  events = events.filter(e=>e.caseId!==caseId||!e.auto);
+  save();
+}
+
+function deleteCase(id) {
+  if(!confirm('Bu davayı silmek istediğinizden emin misiniz?')) return;
+  const c = cases.find(x=>x.id===id);
+  cases = cases.filter(x=>x.id!==id);
+  events = events.filter(e=>e.caseId!==id); // manuel eklenen etkinlikleri temizle
+  addLog('Dava Silindi', `Büro: ${c?.buro} — ${c?.muv}`);
+  save(); updateStats(); renderRecentCases(); renderCasesTable(); renderCalendar(); renderDashboardUpcoming();
+  showToast('🗑','Silindi','Dava dosyası silindi.');
+}
+
+function deleteCaseFromModal() {
+  if(!editingCaseId) return;
+  closeMod('case');
+  deleteCase(editingCaseId);
+}
+
+// DURUŞMA
+function addDurusma() {
+  tmpDurusmalar.push({ id: Date.now().toString(), tarih:'', saat:'09:00', not:'' });
+  renderDurusmaList();
+}
+function renderDurusmaList() {
+  const cont = document.getElementById('durusma-list');
+  if(!tmpDurusmalar.length){ cont.innerHTML='<div class="txt-3" style="font-size:12px;padding:4px 0;">Henüz duruşma eklenmedi.</div>'; return; }
+  cont.innerHTML = tmpDurusmalar.map((d,i)=>`
+    <div class="flex" style="gap:8px;padding:6px 0;border-bottom:1px solid var(--brd);">
+      <input type="date" class="fc" style="flex:2;" value="${d.tarih}" onchange="tmpDurusmalar[${i}].tarih=this.value">
+      <input type="time" class="fc" style="flex:1;" value="${d.saat}" onchange="tmpDurusmalar[${i}].saat=this.value">
+      <input class="fc" style="flex:3;" placeholder="Not..." value="${d.not||''}" onchange="tmpDurusmalar[${i}].not=this.value">
+      <button class="ib" onclick="tmpDurusmalar.splice(${i},1);renderDurusmaList()">🗑</button>
+    </div>`).join('');
+}
+
+// MÜZEKKERE
+function addMuzekkere() {
+  tmpMuzekkere.push({ id: Date.now().toString(), ad:'', yazildi:false, cevap:false, hatirlatma:'' });
+  renderMuzList();
+}
+function renderMuzList() {
+  const cont = document.getElementById('muz-list');
+  if(!tmpMuzekkere.length){ cont.innerHTML='<div class="txt-3" style="font-size:12px;padding:4px 0;">Henüz müzekkere eklenmedi.</div>'; return; }
+  cont.innerHTML = tmpMuzekkere.map((m,i)=>`
+    <div style="background:var(--sur2);border:1px solid var(--brd);border-radius:8px;padding:10px 12px;margin-bottom:6px;">
+      <div class="flex" style="gap:8px;margin-bottom:8px;">
+        <input class="fc" style="flex:3;" placeholder="Müzekkere adı/açıklaması..." value="${m.ad||''}" onchange="tmpMuzekkere[${i}].ad=this.value">
+        <label class="fc-check"><input type="checkbox" ${m.yazildi?'checked':''} onchange="tmpMuzekkere[${i}].yazildi=this.checked"><span>Yazıldı</span></label>
+        <label class="fc-check"><input type="checkbox" ${m.cevap?'checked':''} onchange="tmpMuzekkere[${i}].cevap=this.checked"><span>Cevap Geldi</span></label>
+        <button class="ib" onclick="tmpMuzekkere.splice(${i},1);renderMuzList()">🗑</button>
+      </div>
+      <div class="flex" style="gap:8px;">
+        <div style="flex:1;"><label style="font-size:10px;color:var(--txt3);display:block;margin-bottom:3px;">Hatırlatıcı Tarihi</label>
+        <input type="date" class="fc" value="${m.hatirlatma||''}" onchange="tmpMuzekkere[${i}].hatirlatma=this.value"></div>
+        <div style="flex:2;"></div>
+      </div>
+    </div>`).join('');
+}
+
+// GENEL NOT
+function addGenelNot() {
+  tmpGenelNotlar.push({ id: Date.now().toString(), tarih: new Date().toISOString().slice(0,10), metin:'' });
+  renderGenelNotList();
+}
+function renderGenelNotList() {
+  const cont = document.getElementById('genel-notlar-list');
+  if(!tmpGenelNotlar.length){ cont.innerHTML=''; return; }
+  cont.innerHTML = tmpGenelNotlar.map((n,i)=>`
+    <div class="flex" style="gap:8px;padding:6px 0;border-bottom:1px solid var(--brd);align-items:flex-start;">
+      <input type="date" class="fc" style="flex:1;flex-shrink:0;" value="${n.tarih||''}" onchange="tmpGenelNotlar[${i}].tarih=this.value">
+      <textarea class="fc" style="flex:4;" rows="2" onchange="tmpGenelNotlar[${i}].metin=this.value">${n.metin||''}</textarea>
+      <button class="ib" onclick="tmpGenelNotlar.splice(${i},1);renderGenelNotList()">🗑</button>
+    </div>`).join('');
+}
+
+// =========================================================
+// CALENDAR
+// =========================================================
+function renderCalendar() {
+  document.getElementById('cal-mlbl').textContent = TR_MONTHS[calMonth] + ' ' + calYear;
+  const firstDay = new Date(calYear, calMonth, 1);
+  let startDow = firstDay.getDay(); startDow = startDow===0?6:startDow-1;
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const daysInPrev = new Date(calYear, calMonth, 0).getDate();
+  const todayStr = toDateStr(now);
+  const evDates = {};
+  getAllDates().forEach(e=>{ if(e.date){ if(!evDates[e.date]) evDates[e.date]=[]; evDates[e.date].push(e); } });
+  let html = '';
+  for(let i=startDow-1;i>=0;i--) html+=`<div class="cday other">${daysInPrev-i}</div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday=ds===todayStr, isSel=selDay===d;
+    const evs=evDates[ds]||[];
+    const hasUrg=evs.some(e=>e.priority==='urgent'||e.type==='deadline');
+    let cls='cday'+(isToday?' today':'')+(isSel&&!isToday?' sel':'')+(evs.length?' hasev':'')+(hasUrg?' urgev':'');
+    html+=`<div class="${cls}" onclick="selectCalDay(${d})">${d}</div>`;
+  }
+  const total=startDow+daysInMonth, rem=total%7===0?0:7-(total%7);
+  for(let i=1;i<=rem;i++) html+=`<div class="cday other">${i}</div>`;
+  document.getElementById('cdays').innerHTML=html;
+  if(selDay) renderDayEvents(selDay); else renderDayEvents(null);
+}
+
+function selectCalDay(d) { selDay=d; renderCalendar(); }
+
+function renderDayEvents(d) {
+  const list=document.getElementById('ev-list');
+  const head=document.getElementById('ev-panel-head');
+  if(!d){ head.textContent='Etkinlikler'; list.innerHTML='<div style="padding:12px 4px;font-size:12px;color:var(--txt3);">Bir gün seçin</div>'; return; }
+  const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  head.textContent = d+' '+TR_MONTHS[calMonth];
+  const evs = getAllDates().filter(e=>e.date===ds);
+  if(!evs.length){ list.innerHTML='<div style="padding:12px 4px;font-size:12px;color:var(--txt3);">Bu gün için etkinlik yok</div>'; return; }
+  // Duruşmaları en alta al
+  const evsSorted = [...evs.filter(e=>e.type!=='hearing'), ...evs.filter(e=>e.type==='hearing')];
+  const urgentEvs = evsSorted.filter(e=>e.type!=='hearing'&&(e.todoPriority==='urgent'||e.todoPriority==='high'));
+  const normalEvs = evsSorted.filter(e=>e.type!=='hearing'&&e.todoPriority!=='urgent'&&e.todoPriority!=='high');
+  const nonHearing = [...urgentEvs, ...normalEvs];
+  const hearingEvs = evsSorted.filter(e=>e.type==='hearing');
+  const sortedFinal = [...nonHearing, ...hearingEvs];
+  const hearDiv = nonHearing.length && hearingEvs.length ? '<div style="font-size:10.5px;color:var(--txt3);padding:6px 0 2px;border-top:1px solid var(--brd);margin-top:4px;letter-spacing:.5px;text-transform:uppercase;font-weight:600;">🏛 Duruşmalar</div>' : '';
+  list.innerHTML = nonHearing.map(e=>`
+    <div class="ev-item ${e.priority==='urgent'?'ev-urg':e.type==='deadline'?'ev-dl':e.type==='meeting'?'ev-mtg':e.type==='todo'?'ev-todo':''}${e.todoDone?' ev-done-todo':''}">
+      <div class="ev-title" style="${e.todoDone?'text-decoration:line-through;opacity:.6;':''}">${e.type==='todo'?e.title.replace(/~~/g,''):e.title}</div>
+      <div class="ev-meta">${e.sub||''}${e.todoDone?' · <span style=\'color:var(--grn);\'>Tamamlandı</span>':''}</div>
+      ${e.id&&!e.auto?`<button class="ev-del" onclick="delEvent('${e.id}')">×</button>`:''}
+    </div>`).join('') + hearDiv + hearingEvs.map(e=>`
+    <div class="ev-item" style="border-left-color:var(--txt3);opacity:.85;">
+      <div class="ev-title">${e.title}</div>
+      <div class="ev-meta">${e.sub||''}</div>
+    </div>`).join('');
+}
+
+function prevMonth(){ calMonth--; if(calMonth<0){calMonth=11;calYear--;} selDay=null; renderCalendar(); }
+function nextMonth(){ calMonth++; if(calMonth>11){calMonth=0;calYear++;} selDay=null; renderCalendar(); }
+function goToday(){ calYear=now.getFullYear(); calMonth=now.getMonth(); selDay=now.getDate(); renderCalendar(); }
+function toDateStr(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+
+function openAddEvent() {
+  if(selDay) {
+    document.getElementById('e-date').value = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(selDay).padStart(2,'0')}`;
+  }
+  openMod('event');
+}
+function saveEvent() {
+  const title=document.getElementById('e-title').value.trim();
+  const date=document.getElementById('e-date').value;
+  if(!title||!date){ showToast('⚠️','Eksik','Başlık ve tarih gerekli.'); return; }
+  events.push({ id:Date.now().toString(), title, date, time:document.getElementById('e-time').value, type:document.getElementById('e-type').value, caseNo:document.getElementById('e-case').value, priority:document.getElementById('e-priority').value, desc:document.getElementById('e-desc').value, addedBy:currentUser });
+  save(); closeMod('event');
+  showToast('📅','Eklendi','Takvim olayı kaydedildi.');
+  renderCalendar(); renderReminders(); updateStats();
+}
+function delEvent(id){ events=events.filter(e=>e.id!==id); save(); renderCalendar(); renderReminders(); updateStats(); }
+
+// =========================================================
+// REMINDERS
+// =========================================================
+function filterRem(days, el) {
+  remFilter = days;
+  document.querySelectorAll('#page-reminders .tabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderReminders();
+}
+function renderReminders() {
+  const cont = document.getElementById('rem-list');
+  const today = new Date(); today.setHours(0,0,0,0);
+  let all = getAllDates();
+  if(remFilter===0) all=all.filter(d=>daysDiff(d.date)===0);
+  else if(remFilter<999) all=all.filter(d=>{ const df=daysDiff(d.date); return df>=0&&df<=remFilter; });
+  else all=all.filter(d=>daysDiff(d.date)>=0);
+  const hearings = all.filter(d=>d.type==='hearing').sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const urgentTodos = all.filter(d=>d.type!=='hearing' && (d.todoPriority==='urgent'||d.todoPriority==='high')).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const normalOthers = all.filter(d=>d.type!=='hearing' && d.todoPriority!=='urgent' && d.todoPriority!=='high').sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const list = [...urgentTodos, ...normalOthers, ...hearings];
+  if(!list.length){ cont.innerHTML='<div class="empty"><div class="eico">✅</div><p>Bu aralıkta tarih yok.</p></div>'; return; }
+  const urgDiv = urgentTodos.length ? '<div class="div-title" style="margin:0 0 8px;color:var(--red);">⚡ Acil & Süreli İşler</div>' : '';
+  const normDiv = normalOthers.length && urgentTodos.length ? '<div class="div-title" style="margin:12px 0 8px;">📋 Diğer Tarihler</div>' : '';
+  const hearDiv = hearings.length ? '<div class="div-title" style="margin:12px 0 8px;">🏛 Duruşmalar</div>' : '';
+  cont.innerHTML = urgDiv + urgentTodos.map(d=>renderUpItem(d)).join('') + normDiv + normalOthers.map(d=>renderUpItem(d)).join('') + hearDiv + hearings.map(d=>renderUpItem(d)).join('');
+}
+
+// =========================================================
+// ALARMS
+// =========================================================
+function checkAlarms() {
+  const alarmDays = settings.alarmDays || 3;
+  const alarmKey = 'mx_alarm_' + toDateStr(now);
+  if(localStorage.getItem(alarmKey)) return;
+  const urgent = getAllDates().filter(d=>{ const df=daysDiff(d.date); return df>=0&&df<=alarmDays && !d.noAlarm; });
+  if(!urgent.length) return;
+  setTimeout(()=>{
+    document.getElementById('alarm-list').innerHTML = urgent.sort((a,b)=>new Date(a.date)-new Date(b.date)).map(d=>{
+      const df=daysDiff(d.date);
+      return `<div class="alarm-ev">${d.title}<br><small style="color:var(--txt3);margin-left:20px;">${df===0?'BUGÜN':df===1?'Yarın':df+' gün sonra'} · ${d.sub||''}</small></div>`;
+    }).join('');
+    document.getElementById('alarm-overlay').classList.add('show');
+    try {
+      const ctx=new AudioContext();
+      [0,700,1400].forEach(t=>{
+        const o=ctx.createOscillator(),g=ctx.createGain();
+        o.connect(g);g.connect(ctx.destination);
+        o.frequency.value=880;
+        g.gain.setValueAtTime(0.25,ctx.currentTime+t/1000);
+        g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+t/1000+0.5);
+        o.start(ctx.currentTime+t/1000);o.stop(ctx.currentTime+t/1000+0.5);
+      });
+    } catch(e){}
+  },1500);
+}
+function closeAlarm() {
+  document.getElementById('alarm-overlay').classList.remove('show');
+  localStorage.setItem('mx_alarm_'+toDateStr(now),'1');
+}
+
+// =========================================================
+// LOG
+// =========================================================
+function renderLog() {
+  const cont = document.getElementById('log-list');
+  const recent = [...logs].reverse().slice(0,100);
+  if(!recent.length){ cont.innerHTML='<div class="empty"><div class="eico">📋</div><p>Henüz işlem yok.</p></div>'; return; }
+  cont.innerHTML = recent.map(l=>`
+    <div class="log-item">
+      <div class="log-time">${new Date(l.ts).toLocaleString('tr-TR')}</div>
+      <div class="log-user">${l.user}</div>
+      <div class="log-act"><strong>${l.action}</strong> — ${l.detail||''}</div>
+    </div>`).join('');
+}
+
+// =========================================================
+// MODAL HELPERS
+// =========================================================
+function openMod(id) { document.getElementById('modal-'+id).classList.add('show'); }
+function closeMod(id) { document.getElementById('modal-'+id).classList.remove('show'); }
+document.querySelectorAll('.moverlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('show'); }));
+
+// =========================================================
+// TOAST
+// =========================================================
+function showToast(ico,title,msg,dur=3200) {
+  const tw=document.getElementById('toast-wrap');
+  const id='t'+Date.now();
+  tw.insertAdjacentHTML('beforeend',`<div class="toast" id="${id}"><div class="toast-ico">${ico}</div><div class="toast-body"><div class="toast-t">${title}</div><div class="toast-m">${msg}</div></div><button class="toast-x" onclick="rmToast('${id}')">×</button></div>`);
+  setTimeout(()=>document.getElementById(id)?.classList.add('show'),10);
+  setTimeout(()=>rmToast(id),dur);
+}
+function rmToast(id){ const el=document.getElementById(id); if(!el)return; el.classList.remove('show'); setTimeout(()=>el.remove(),300); }
+
+// =========================================================
+// YARDIMCI FONKSİYONLAR
+// =========================================================
+function formatEsas(input) {
+  let v = input.value.replace(/[^0-9/]/g,'');
+  // 4 rakam girildikten sonra / ekle
+  if(v.length === 4 && !v.includes('/')) {
+    v = v + '/';
+  } else if(v.length > 4 && !v.includes('/')) {
+    v = v.slice(0,4) + '/' + v.slice(4);
+  }
+  input.value = v;
+}
+
+function formatPhone(input) {
+  let v = input.value.replace(/\D/g,'');
+  if(v.length > 11) v = v.slice(0,11);
+  let formatted = '';
+  if(v.length <= 4) formatted = v;
+  else if(v.length <= 7) formatted = v.slice(0,4)+' '+v.slice(4);
+  else if(v.length <= 9) formatted = v.slice(0,4)+' '+v.slice(4,7)+' '+v.slice(7);
+  else formatted = v.slice(0,4)+' '+v.slice(4,7)+' '+v.slice(7,9)+' '+v.slice(9);
+  input.value = formatted;
+}
+
+function toTitleCase(str) {
+  return str.split(' ').map(word => {
+    if(!word) return word;
+    return word.charAt(0).toLocaleUpperCase('tr-TR') + word.slice(1).toLocaleLowerCase('tr-TR');
+  }).join(' ');
+}
+
+// BİLİRKİŞİ ÇOKLU
+function addBilirkisi() {
+  tmpBilirkisi.push({ id: Date.now().toString(), gitti: false, dondu: false, beyanTarih: '', beyanYapildi: false, not: '' });
+  renderBilList();
+}
+
+function renderBilList() {
+  const cont = document.getElementById('bil-list');
+  if(!cont) return;
+  if(!tmpBilirkisi.length) {
+    cont.innerHTML = '<div class="txt-3" style="font-size:12px;padding:4px 0;">Henüz bilirkişi süreci eklenmedi.</div>';
+    return;
+  }
+  cont.innerHTML = tmpBilirkisi.map((b,i) => `
+    <div style="background:var(--sur2);border:1px solid var(--brd);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-size:12px;font-weight:600;color:var(--acc);">${i+1}. Bilirkişi Süreci</span>
+        <button class="ib" onclick="tmpBilirkisi.splice(${i},1);renderBilList()">🗑</button>
+      </div>
+      <div class="frow frow-4">
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check"><input type="checkbox" ${b.gitti?'checked':''} onchange="tmpBilirkisi[${i}].gitti=this.checked"><span>Gönderildi</span></label>
+        </div>
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check"><input type="checkbox" ${b.dondu?'checked':''} onchange="tmpBilirkisi[${i}].dondu=this.checked"><span>Döndü</span></label>
+        </div>
+        <div class="fg"><label>Rapora Beyan Son Gün</label>
+          <input type="date" class="fc" value="${b.beyanTarih||''}" onchange="handleBilDateField(this,${i})">
+        </div>
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check"><input type="checkbox" ${b.beyanYapildi?'checked':''} onchange="tmpBilirkisi[${i}].beyanYapildi=this.checked"><span>Beyan yapıldı ✓</span></label>
+        </div>
+      </div>
+      <div class="frow" style="margin-top:6px;">
+        <div class="fg"><label>Not</label><input class="fc" placeholder="Açıklama..." value="${b.not||''}" onchange="tmpBilirkisi[${i}].not=this.value"></div>
+      </div>
+    </div>`).join('');
+}
+
+// ZAMANAŞİMİ sayfası
+function renderZamanasimi() {
+  const tbody = document.getElementById('zamanasimi-tbody');
+  const countEl = document.getElementById('zamanasimi-count');
+  if(!tbody) return;
+  const search = (document.getElementById('za-search')?.value || '').toLowerCase();
+  let list = cases.filter(c => c.zamanasimi && c.zamanasimi.trim());
+  if(search) list = list.filter(c => (c.buro+c.muv+c.zamanasimi).toLowerCase().includes(search));
+  list.sort((a,b) => new Date(a.zamanasimi) - new Date(b.zamanasimi));
+  if(countEl) countEl.textContent = `Toplam ${list.length} dosya`;
+  if(!list.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--txt3);">Zamanaşımı tarihi girilen dosya bulunamadı.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(c => {
+    const diff = daysDiff(c.zamanasimi);
+    const diffLbl = diff < 0
+      ? `<span style="color:var(--txt3);">Geçti (${Math.abs(diff)} gün önce)</span>`
+      : diff === 0
+        ? `<span style="color:var(--red);font-weight:700;">BUGÜN</span>`
+        : diff <= 30
+          ? `<span style="color:var(--red);">${diff} gün kaldı</span>`
+          : diff <= 90
+            ? `<span style="color:var(--org);">${diff} gün kaldı</span>`
+            : `<span style="color:var(--grn);">${diff} gün kaldı</span>`;
+    return `<tr class="cr" onclick="openEditCase('${c.id}')">
+      <td><span class="mono txt-acc fw6">${c.buro||'—'}</span></td>
+      <td class="fw6" style="color:var(--txt);">${c.muv||'—'}</td>
+      <td><span class="mono" style="color:var(--acc);">${fmtDate(c.zamanasimi)}</span></td>
+      <td>${diffLbl}</td>
+      <td>${statusBadge(c.status)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// =========================================================
+// CALLS
+// =========================================================
+let calls = [];
+let editingCallId = null;
+
+function saveCalls() { save(); }
+
+function openCallModal(id) {
+  editingCallId = id || null;
+  const c = id ? calls.find(x=>x.id===id) : null;
+  document.getElementById('call-modal-title').textContent = id ? 'Arama Kaydını Düzenle' : 'Arama Kaydı Ekle';
+  document.getElementById('call-del-btn').style.display = id ? 'inline-flex' : 'none';
+  document.getElementById('cl-name').value = c?.name || '';
+  document.getElementById('cl-phone').value = c?.phone || '';
+  document.getElementById('cl-date').value = c?.date || new Date().toISOString().slice(0,10);
+  document.getElementById('cl-time').value = c?.time || new Date().toTimeString().slice(0,5);
+  document.getElementById('cl-case').value = c?.caseNo || '';
+  document.getElementById('cl-talep').checked = c?.talepKarsilandi || false;
+  document.getElementById('cl-note').value = c?.note || '';
+  openMod('call');
+}
+
+function saveCall() {
+  const name = document.getElementById('cl-name').value.trim();
+  if(!name){ showToast('⚠️','Eksik','Arayan kişi adı gerekli.'); return; }
+  const obj = {
+    id: editingCallId || Date.now().toString(),
+    name,
+    phone: document.getElementById('cl-phone').value.trim(),
+    date: document.getElementById('cl-date').value,
+    time: document.getElementById('cl-time').value,
+    caseNo: document.getElementById('cl-case').value.trim(),
+    talepKarsilandi: document.getElementById('cl-talep').checked,
+    note: document.getElementById('cl-note').value.trim(),
+    done: editingCallId ? (calls.find(c=>c.id===editingCallId)?.done||false) : false,
+    doneBy: editingCallId ? (calls.find(c=>c.id===editingCallId)?.doneBy||'') : '',
+    doneAt: editingCallId ? (calls.find(c=>c.id===editingCallId)?.doneAt||'') : '',
+    createdBy: currentUser,
+    createdAt: editingCallId ? (calls.find(c=>c.id===editingCallId)?.createdAt||Date.now()) : Date.now()
+  };
+  if(editingCallId) { calls = calls.map(c=>c.id===editingCallId?obj:c); addLog('Arama Güncellendi', name); }
+  else { calls.unshift(obj); addLog('Arama Kaydedildi', name + ' aradı'); }
+  saveCalls(); closeMod('call');
+  showToast('📞','Kaydedildi', name + ' araması kaydedildi.');
+  renderCalls(); updateCallsBadge();
+}
+
+function toggleTalepKarsilandi(id, val) {
+  calls = calls.map(c => {
+    if(c.id!==id) return c;
+    addLog(val?'Talep Karşılandı':'Talep Geri Alındı', c.name);
+    return {...c, talepKarsilandi: val, done: val, doneBy: val?currentUser:'', doneAt: val?new Date().toISOString():''};
+  });
+  saveCalls(); renderCalls(); updateCallsBadge();
+}
+
+function deleteCallById(id) {
+  const c = calls.find(x=>x.id===id);
+  if(!confirm('Bu arama kaydını silmek istediğinizden emin misiniz?')) return;
+  calls = calls.filter(x=>x.id!==id);
+  addLog('Arama Silindi', c?.name||'');
+  saveCalls(); renderCalls(); updateCallsBadge();
+  showToast('🗑','Silindi','Arama kaydı silindi.');
+}
+
+function deleteCallFromModal() {
+  if(!editingCallId) return;
+  const c = calls.find(x=>x.id===editingCallId);
+  calls = calls.filter(x=>x.id!==editingCallId);
+  addLog('Arama Silindi', c?.name||'');
+  saveCalls(); closeMod('call');
+  showToast('🗑','Silindi','Arama kaydı silindi.');
+  renderCalls(); updateCallsBadge();
+}
+
+function updateCallsBadge() {
+  const pending = calls.filter(c=>!c.talepKarsilandi).length;
+  const b = document.getElementById('badge-calls');
+  if(b){ b.textContent=pending; b.style.display=pending?'':'none'; }
+}
+
+function renderCalls() {
+  const tbody = document.getElementById('calls-tbody');
+  if(!tbody) return;
+  const fStatus = document.getElementById('call-filter-status')?.value || 'all';
+  const search = (document.getElementById('call-search')?.value || '').toLowerCase();
+  let list = [...calls];
+  if(fStatus==='pending') list = list.filter(c=>!c.talepKarsilandi);
+  if(fStatus==='done') list = list.filter(c=>c.talepKarsilandi);
+  if(search) list = list.filter(c=>(c.name+c.phone+c.caseNo+c.note).toLowerCase().includes(search));
+  list.sort((a,b)=>{
+    if(a.talepKarsilandi!==b.talepKarsilandi) return a.talepKarsilandi?1:-1;
+    return new Date(b.date+' '+b.time) - new Date(a.date+' '+a.time);
+  });
+
+  // Stats
+  const total=calls.length, pending=calls.filter(c=>!c.talepKarsilandi).length, done=calls.filter(c=>c.talepKarsilandi).length;
+  const today=new Date().toISOString().slice(0,10);
+  const todayCount=calls.filter(c=>c.date===today).length;
+  const statsEl=document.getElementById('call-stats');
+  if(statsEl) statsEl.innerHTML=`
+    <div class="sc gold"><div class="si">📞</div><div class="sv">${total}</div><div class="sl">Toplam Arama</div></div>
+    <div class="sc blue"><div class="si">📅</div><div class="sv">${todayCount}</div><div class="sl">Bugünkü Aramalar</div></div>
+    <div class="sc red"><div class="si">⏳</div><div class="sv">${pending}</div><div class="sl">Talep Bekleyen</div></div>
+    <div class="sc green"><div class="si">✅</div><div class="sv">${done}</div><div class="sl">Talep Karşılanan</div></div>`;
+
+  if(!list.length){ tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--txt3);">Arama kaydı bulunamadı.</td></tr>'; return; }
+
+  tbody.innerHTML = list.map(c=>{
+    return `<tr class="cr" onclick="openCallModal('${c.id}')">
+      <td>
+        <div class="mono" style="font-size:11.5px;color:var(--acc);">${fmtDate(c.date)}</div>
+        <div style="font-size:11px;color:var(--txt3);">${c.time||''}</div>
+      </td>
+      <td class="fw6" style="color:var(--txt);">${c.name}</td>
+      <td style="font-size:11.5px;">${c.phone||'—'}</td>
+      <td><span class="mono" style="font-size:11px;color:var(--acc);">${c.caseNo||'—'}</span></td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">${c.note||'—'}</td>
+      <td style="font-size:11px;color:var(--txt3);">${c.createdBy||'—'}</td>
+      <td onclick="event.stopPropagation();">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="checkbox" style="width:15px;height:15px;accent-color:var(--acc);cursor:pointer;" ${c.talepKarsilandi?'checked':''} onchange="toggleTalepKarsilandi('${c.id}',this.checked)">
+          <span style="font-size:11.5px;color:${c.talepKarsilandi?'var(--grn)':'var(--txt3)'};">${c.talepKarsilandi?'Karşılandı':'Bekliyor'}</span>
+        </label>
+      </td>
+      <td>
+        ${c.talepKarsilandi && c.doneBy
+          ? `<div style="font-size:11px;"><span style="color:var(--grn);">${c.doneBy}</span><div style="color:var(--txt3);font-size:10px;">${c.doneAt?fmtDate(c.doneAt):''}</div></div>`
+          : '<span style="color:var(--txt3);font-size:11px;">—</span>'}
+      </td>
+      <td>
+        <div class="row-acts">
+          <button class="ib" onclick="event.stopPropagation();openCallModal('${c.id}')">✏️</button>
+          <button class="ib" onclick="event.stopPropagation();deleteCallById('${c.id}')">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// =========================================================
+// BACKUP / RESTORE
+// =========================================================
+function exportData() {
+  // Sunucudan yedek indir
+  window.location.href = '/api/backup';
+  addLog('Veri Yedeklendi', currentUser, cases.length + ' dava');
+  showToast('💾','Yedek İndiriliyor', cases.length + ' dava yedekleniyor...');
+}
+
+function importData(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if(!data.version || !data.cases) {
+        showToast('❌','Hata','Geçersiz yedek dosyası.'); return;
+      }
+      const count = data.cases?.length || 0;
+      const ok = confirm(
+        '"' + file.name + '" dosyasından ' + count + ' dava yüklenecek.\n\n' +
+        'Yedek tarihi: ' + new Date(data.exportedAt).toLocaleString("tr-TR") + '\n\n' +
+        '⚠️ Mevcut tüm veriler silinecek. Devam etmek istiyor musunuz?'
+      );
+      if(!ok) { input.value=''; return; }
+      const result = await fetch('/api/restore', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+      });
+      const res = await result.json();
+      if(res.ok) {
+        input.value = '';
+        showToast('✅','Yüklendi', count + ' dava geri yüklendi. Sayfa yenileniyor...');
+        setTimeout(() => location.reload(), 1500);
+      } else {
+        showToast('❌','Hata','Yükleme başarısız.');
+      }
+    } catch(err) {
+      showToast('❌','Hata','Dosya okunamadı: ' + err.message);
+      input.value = '';
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function saveTodos() { save(); }
+
+function isValidDate(val) {
+  if(!val || val.length !== 10) return false;
+  const d = new Date(val);
+  return !isNaN(d.getTime()) && d.getFullYear() > 2000 && d.getFullYear() < 2100;
+}
+
+function handleDateField(input, etiket) {
+  const val = input.value;
+  if(val && isValidDate(val)) {
+    offerTodoFromDate(val, etiket);
+  } else if(!val) {
+    checkDateTodos(input, etiket);
+  }
+}
+
+function handleBilDateField(input, idx) {
+  const val = input.value;
+  const ov = tmpBilirkisi[idx]?.beyanTarih || '';
+  tmpBilirkisi[idx].beyanTarih = val;
+  if(val && isValidDate(val)) {
+    offerBilTodo(val, idx + 1);
+  } else if(!val && ov) {
+    checkDateTodosByDate(ov, 'Bilirkişi Raporu Beyan');
+  }
+}
+
+
+
+
+// BİLİRKİŞİ ÇOKLU
+function addBilirkisi() {
+  tmpBilirkisi.push({ id: Date.now().toString(), gitti: false, dondu: false, beyanTarih: '', beyanYapildi: false, not: '' });
+  renderBilList();
+}
+
+function renderBilList() {
+  const cont = document.getElementById('bil-list');
+  if(!cont) return;
+  if(!tmpBilirkisi.length) {
+    cont.innerHTML = '<div class="txt-3" style="font-size:12px;padding:4px 0;">Henüz bilirkişi süreci eklenmedi.</div>';
+    return;
+  }
+  cont.innerHTML = tmpBilirkisi.map((b,i) => `
+    <div style="background:var(--sur2);border:1px solid var(--brd);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-size:12px;font-weight:600;color:var(--acc);">${i+1}. Bilirkişi Süreci</span>
+        <button class="ib" onclick="tmpBilirkisi.splice(${i},1);renderBilList()">🗑</button>
+      </div>
+      <div class="frow frow-4">
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check"><input type="checkbox" ${b.gitti?'checked':''} onchange="tmpBilirkisi[${i}].gitti=this.checked"><span>Gönderildi</span></label>
+        </div>
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check"><input type="checkbox" ${b.dondu?'checked':''} onchange="tmpBilirkisi[${i}].dondu=this.checked"><span>Döndü</span></label>
+        </div>
+        <div class="fg"><label>Rapora Beyan Son Gün</label>
+          <input type="date" class="fc" value="${b.beyanTarih||''}" onchange="handleBilDateField(this,${i})">
+        </div>
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check"><input type="checkbox" ${b.beyanYapildi?'checked':''} onchange="tmpBilirkisi[${i}].beyanYapildi=this.checked"><span>Beyan yapıldı ✓</span></label>
+        </div>
+      </div>
+      <div class="frow" style="margin-top:6px;">
+        <div class="fg"><label>Not</label><input class="fc" placeholder="Açıklama..." value="${b.not||''}" onchange="tmpBilirkisi[${i}].not=this.value"></div>
+      </div>
+    </div>`).join('');
+}
+
+// ZAMANAŞİMİ sayfası
+function renderZamanasimi() {
+  const tbody = document.getElementById('zamanasimi-tbody');
+  const countEl = document.getElementById('zamanasimi-count');
+  if(!tbody) return;
+  const search = (document.getElementById('za-search')?.value || '').toLowerCase();
+  let list = cases.filter(c => c.zamanasimi && c.zamanasimi.trim());
+  if(search) list = list.filter(c => (c.buro+c.muv+c.zamanasimi).toLowerCase().includes(search));
+  list.sort((a,b) => new Date(a.zamanasimi) - new Date(b.zamanasimi));
+  if(countEl) countEl.textContent = `Toplam ${list.length} dosya`;
+  if(!list.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--txt3);">Zamanaşımı tarihi girilen dosya bulunamadı.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(c => {
+    const diff = daysDiff(c.zamanasimi);
+    const diffLbl = diff < 0
+      ? `<span style="color:var(--txt3);">Geçti (${Math.abs(diff)} gün önce)</span>`
+      : diff === 0
+        ? `<span style="color:var(--red);font-weight:700;">BUGÜN</span>`
+        : diff <= 30
+          ? `<span style="color:var(--red);">${diff} gün kaldı</span>`
+          : diff <= 90
+            ? `<span style="color:var(--org);">${diff} gün kaldı</span>`
+            : `<span style="color:var(--grn);">${diff} gün kaldı</span>`;
+    return `<tr class="cr" onclick="openEditCase('${c.id}')">
+      <td><span class="mono txt-acc fw6">${c.buro||'—'}</span></td>
+      <td class="fw6" style="color:var(--txt);">${c.muv||'—'}</td>
+      <td><span class="mono" style="color:var(--acc);">${fmtDate(c.zamanasimi)}</span></td>
+      <td>${diffLbl}</td>
+      <td>${statusBadge(c.status)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// =========================================================
+// CALLS
+// =========================================================
+
+function saveCalls() { save(); }
+
+function openCallModal(id) {
+  editingCallId = id || null;
+  const c = id ? calls.find(x=>x.id===id) : null;
+  document.getElementById('call-modal-title').textContent = id ? 'Arama Kaydını Düzenle' : 'Arama Kaydı Ekle';
+  document.getElementById('call-del-btn').style.display = id ? 'inline-flex' : 'none';
+  document.getElementById('cl-name').value = c?.name || '';
+  document.getElementById('cl-phone').value = c?.phone || '';
+  document.getElementById('cl-date').value = c?.date || new Date().toISOString().slice(0,10);
+  document.getElementById('cl-time').value = c?.time || new Date().toTimeString().slice(0,5);
+  document.getElementById('cl-case').value = c?.caseNo || '';
+  document.getElementById('cl-talep').checked = c?.talepKarsilandi || false;
+  document.getElementById('cl-note').value = c?.note || '';
+  openMod('call');
+}
+
+function saveCall() {
+  const name = document.getElementById('cl-name').value.trim();
+  if(!name){ showToast('⚠️','Eksik','Arayan kişi adı gerekli.'); return; }
+  const obj = {
+    id: editingCallId || Date.now().toString(),
+    name,
+    phone: document.getElementById('cl-phone').value.trim(),
+    date: document.getElementById('cl-date').value,
+    time: document.getElementById('cl-time').value,
+    caseNo: document.getElementById('cl-case').value.trim(),
+    talepKarsilandi: document.getElementById('cl-talep').checked,
+    note: document.getElementById('cl-note').value.trim(),
+    done: editingCallId ? (calls.find(c=>c.id===editingCallId)?.done||false) : false,
+    doneBy: editingCallId ? (calls.find(c=>c.id===editingCallId)?.doneBy||'') : '',
+    doneAt: editingCallId ? (calls.find(c=>c.id===editingCallId)?.doneAt||'') : '',
+    createdBy: currentUser,
+    createdAt: editingCallId ? (calls.find(c=>c.id===editingCallId)?.createdAt||Date.now()) : Date.now()
+  };
+  if(editingCallId) { calls = calls.map(c=>c.id===editingCallId?obj:c); addLog('Arama Güncellendi', name); }
+  else { calls.unshift(obj); addLog('Arama Kaydedildi', name + ' aradı'); }
+  saveCalls(); closeMod('call');
+  showToast('📞','Kaydedildi', name + ' araması kaydedildi.');
+  renderCalls(); updateCallsBadge();
+}
+
+function toggleTalepKarsilandi(id, val) {
+  calls = calls.map(c => {
+    if(c.id!==id) return c;
+    addLog(val?'Talep Karşılandı':'Talep Geri Alındı', c.name);
+    return {...c, talepKarsilandi: val, done: val, doneBy: val?currentUser:'', doneAt: val?new Date().toISOString():''};
+  });
+  saveCalls(); renderCalls(); updateCallsBadge();
+}
+
+function deleteCallById(id) {
+  const c = calls.find(x=>x.id===id);
+  if(!confirm('Bu arama kaydını silmek istediğinizden emin misiniz?')) return;
+  calls = calls.filter(x=>x.id!==id);
+  addLog('Arama Silindi', c?.name||'');
+  saveCalls(); renderCalls(); updateCallsBadge();
+  showToast('🗑','Silindi','Arama kaydı silindi.');
+}
+
+function deleteCallFromModal() {
+  if(!editingCallId) return;
+  const c = calls.find(x=>x.id===editingCallId);
+  calls = calls.filter(x=>x.id!==editingCallId);
+  addLog('Arama Silindi', c?.name||'');
+  saveCalls(); closeMod('call');
+  showToast('🗑','Silindi','Arama kaydı silindi.');
+  renderCalls(); updateCallsBadge();
+}
+
+function updateCallsBadge() {
+  const pending = calls.filter(c=>!c.talepKarsilandi).length;
+  const b = document.getElementById('badge-calls');
+  if(b){ b.textContent=pending; b.style.display=pending?'':'none'; }
+}
+
+function renderCalls() {
+  const tbody = document.getElementById('calls-tbody');
+  if(!tbody) return;
+  const fStatus = document.getElementById('call-filter-status')?.value || 'all';
+  const search = (document.getElementById('call-search')?.value || '').toLowerCase();
+  let list = [...calls];
+  if(fStatus==='pending') list = list.filter(c=>!c.talepKarsilandi);
+  if(fStatus==='done') list = list.filter(c=>c.talepKarsilandi);
+  if(search) list = list.filter(c=>(c.name+c.phone+c.caseNo+c.note).toLowerCase().includes(search));
+  list.sort((a,b)=>{
+    if(a.talepKarsilandi!==b.talepKarsilandi) return a.talepKarsilandi?1:-1;
+    return new Date(b.date+' '+b.time) - new Date(a.date+' '+a.time);
+  });
+
+  // Stats
+  const total=calls.length, pending=calls.filter(c=>!c.talepKarsilandi).length, done=calls.filter(c=>c.talepKarsilandi).length;
+  const today=new Date().toISOString().slice(0,10);
+  const todayCount=calls.filter(c=>c.date===today).length;
+  const statsEl=document.getElementById('call-stats');
+  if(statsEl) statsEl.innerHTML=`
+    <div class="sc gold"><div class="si">📞</div><div class="sv">${total}</div><div class="sl">Toplam Arama</div></div>
+    <div class="sc blue"><div class="si">📅</div><div class="sv">${todayCount}</div><div class="sl">Bugünkü Aramalar</div></div>
+    <div class="sc red"><div class="si">⏳</div><div class="sv">${pending}</div><div class="sl">Talep Bekleyen</div></div>
+    <div class="sc green"><div class="si">✅</div><div class="sv">${done}</div><div class="sl">Talep Karşılanan</div></div>`;
+
+  if(!list.length){ tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--txt3);">Arama kaydı bulunamadı.</td></tr>'; return; }
+
+  tbody.innerHTML = list.map(c=>{
+    return `<tr class="cr" onclick="openCallModal('${c.id}')">
+      <td>
+        <div class="mono" style="font-size:11.5px;color:var(--acc);">${fmtDate(c.date)}</div>
+        <div style="font-size:11px;color:var(--txt3);">${c.time||''}</div>
+      </td>
+      <td class="fw6" style="color:var(--txt);">${c.name}</td>
+      <td style="font-size:11.5px;">${c.phone||'—'}</td>
+      <td><span class="mono" style="font-size:11px;color:var(--acc);">${c.caseNo||'—'}</span></td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">${c.note||'—'}</td>
+      <td style="font-size:11px;color:var(--txt3);">${c.createdBy||'—'}</td>
+      <td onclick="event.stopPropagation();">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="checkbox" style="width:15px;height:15px;accent-color:var(--acc);cursor:pointer;" ${c.talepKarsilandi?'checked':''} onchange="toggleTalepKarsilandi('${c.id}',this.checked)">
+          <span style="font-size:11.5px;color:${c.talepKarsilandi?'var(--grn)':'var(--txt3)'};">${c.talepKarsilandi?'Karşılandı':'Bekliyor'}</span>
+        </label>
+      </td>
+      <td>
+        ${c.talepKarsilandi && c.doneBy
+          ? `<div style="font-size:11px;"><span style="color:var(--grn);">${c.doneBy}</span><div style="color:var(--txt3);font-size:10px;">${c.doneAt?fmtDate(c.doneAt):''}</div></div>`
+          : '<span style="color:var(--txt3);font-size:11px;">—</span>'}
+      </td>
+      <td>
+        <div class="row-acts">
+          <button class="ib" onclick="event.stopPropagation();openCallModal('${c.id}')">✏️</button>
+          <button class="ib" onclick="event.stopPropagation();deleteCallById('${c.id}')">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// =========================================================
+// BACKUP / RESTORE
+// =========================================================
+
+
+// =========================================================
+// TODO
+// =========================================================
+
+function saveTodos() { save(); }
+
+function isValidDate(val) {
+  if(!val || val.length !== 10) return false;
+  const d = new Date(val);
+  return !isNaN(d.getTime()) && d.getFullYear() > 2000 && d.getFullYear() < 2100;
+}
+
+function handleDateField(input, etiket) {
+  const val = input.value;
+  if(val && isValidDate(val)) {
+    offerTodoFromDate(val, etiket);
+  } else if(!val) {
+    checkDateTodos(input, etiket);
+  }
+}
+
+function handleBilDateField(input, idx) {
+  const val = input.value;
+  const ov = tmpBilirkisi[idx]?.beyanTarih || '';
+  tmpBilirkisi[idx].beyanTarih = val;
+  if(val && isValidDate(val)) {
+    offerBilTodo(val, idx + 1);
+  } else if(!val && ov) {
+    checkDateTodosByDate(ov, 'Bilirkişi Raporu Beyan');
+  }
+}
+
+function fmtDate(iso) {
+  // YYYY-MM-DD -> GG.AA.YYYY
+  if(!iso || iso.length !== 10) return iso;
+  return iso.slice(8,10) + '.' + iso.slice(5,7) + '.' + iso.slice(0,4);
+}
+
+function checkDateTodos(input, etiket) {
+  // Tarih silindi — o etiketle eşleşen görevleri bul
+  const muv = document.getElementById('c-muv')?.value || '';
+  const buro = document.getElementById('c-buro')?.value || '';
+  const ilgili = todos.filter(t =>
+    t.title.includes(etiket) &&
+    (muv ? t.title.includes(muv) : true) &&
+    !t.done
+  );
+  if(!ilgili.length) return;
+  showDeleteTodosPrompt(ilgili);
+}
+
+function checkDateTodosByDate(tarih, etiket) {
+  // Bilirkişi için tarihe göre ara
+  const ilgili = todos.filter(t =>
+    t.due === tarih && t.title.includes(etiket) && !t.done
+  );
+  if(!ilgili.length) return;
+  showDeleteTodosPrompt(ilgili);
+}
+
+function showDeleteTodosPrompt(ilgili) {
+  // Modal ile sor
+  const existing = document.getElementById('modal-delete-todos');
+  if(existing) existing.remove();
+
+  const listHtml = ilgili.map(t => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--brd);">
+      <input type="checkbox" id="dtc-${t.id}" checked style="width:15px;height:15px;accent-color:var(--acc);cursor:pointer;">
+      <div style="flex:1;">
+        <div style="font-size:12.5px;font-weight:600;color:var(--txt);">${t.title}</div>
+        ${t.due ? `<div style="font-size:11px;color:var(--acc);">📅 ${fmtDate(t.due)}</div>` : ''}
+      </div>
+    </div>`).join('');
+
+  const modal = document.createElement('div');
+  modal.className = 'moverlay show';
+  modal.id = 'modal-delete-todos';
+  modal.style.zIndex = '1100';
+  modal.innerHTML = `
+    <div class="modal" style="max-width:460px;">
+      <div class="mhead">
+        <h2>İlgili Görevler Bulundu</h2>
+        <button class="mclose" onclick="document.getElementById('modal-delete-todos').remove()">×</button>
+      </div>
+      <div class="mbody">
+        <p style="font-size:13px;color:var(--txt2);margin-bottom:14px;">Bu tarihle ilişkili aşağıdaki görevler bulundu. Silmek istediklerinizi seçin:</p>
+        <div>${listHtml}</div>
+      </div>
+      <div class="mfoot">
+        <button class="btn btn-s" onclick="document.getElementById('modal-delete-todos').remove()">Hiçbirini Silme</button>
+        <button class="btn btn-d" onclick="deleteCheckedTodos(${JSON.stringify(ilgili.map(t=>t.id))})">🗑 Seçilenleri Sil</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function deleteCheckedTodos(ids) {
+  const toDelete = ids.filter(id => {
+    const cb = document.getElementById('dtc-'+id);
+    return cb && cb.checked;
+  });
+  if(!toDelete.length) {
+    document.getElementById('modal-delete-todos')?.remove();
+    return;
+  }
+  todos = todos.filter(t => !toDelete.includes(t.id));
+  saveTodos();
+  document.getElementById('modal-delete-todos')?.remove();
+  showToast('🗑','Silindi', toDelete.length + ' görev silindi.');
+  renderTodos(); updateTodoBadge(); renderCalendar(); updateStats(); renderDashboardUpcoming(); renderReminders();
+  addLog('Görev Silindi', toDelete.length + ' görev tarih silinince kaldırıldı');
+}
+
+function offerBilTodo(tarih, sira) {
+  const muv = document.getElementById('c-muv')?.value || '';
+  const buro = document.getElementById('c-buro')?.value || '';
+  const baslik = 'Bilirkişi Raporu Beyan (' + sira + '. Süreç)' + (muv ? ' — ' + muv : '') + (buro ? ' [' + buro + ']' : '');
+  offerTodoFromDate(tarih, baslik);
+}
+
+function offerTodoFromDate(tarih, etiket) {
+  const muv = document.getElementById('c-muv')?.value || '';
+  const buro = document.getElementById('c-buro')?.value || '';
+  const suffix = (muv ? ' — ' + muv : '') + (buro ? ' [' + buro + ']' : '');
+  editingTodoId = null;
+  document.getElementById('todo-modal-title').textContent = 'Yeni Görev';
+  document.getElementById('todo-del-btn').style.display = 'none';
+  document.getElementById('td-title').value = etiket + suffix;
+  document.getElementById('td-priority').value = 'high'; // Süreli İş
+  document.getElementById('td-due').value = tarih;
+  document.getElementById('td-note').value = '';
+  const sel = document.getElementById('td-assign');
+  sel.innerHTML = '<option value="">— Herkese —</option>' + users.map(u=>`<option value="${u}">${u}</option>`).join('');
+  openMod('todo');
+}
+
+function openTodoModal(id) {
+  editingTodoId = id || null;
+  const t = id ? todos.find(x=>x.id===id) : null;
+  document.getElementById('todo-modal-title').textContent = id ? 'Gorevi Duzenle' : 'Yeni Gorev';
+  document.getElementById('todo-del-btn').style.display = id ? 'inline-flex' : 'none';
+  document.getElementById('td-title').value = t?.title || '';
+  document.getElementById('td-priority').value = t?.priority || 'normal';
+  document.getElementById('td-due').value = t?.due || '';
+  document.getElementById('td-note').value = t?.note || '';
+  const sel = document.getElementById('td-assign');
+  sel.innerHTML = '<option value="">— Herkese —</option>' + users.map(u=>`<option value="${u}" ${t?.assignTo===u?'selected':''}>${u}</option>`).join('');
+  openMod('todo');
+}
+
+function saveTodo() {
+  const title = document.getElementById('td-title').value.trim();
+  if(!title){ showToast('⚠️','Eksik','Gorev basligi gerekli.'); return; }
+  const obj = {
+    id: editingTodoId || Date.now().toString(),
+    title,
+    priority: document.getElementById('td-priority').value,
+    due: document.getElementById('td-due').value,
+    note: document.getElementById('td-note').value.trim(),
+    assignTo: document.getElementById('td-assign').value,
+    done: editingTodoId ? (todos.find(t=>t.id===editingTodoId)?.done||false) : false,
+    createdBy: currentUser,
+    createdAt: editingTodoId ? (todos.find(t=>t.id===editingTodoId)?.createdAt||Date.now()) : Date.now(),
+    doneBy: editingTodoId ? (todos.find(t=>t.id===editingTodoId)?.doneBy||'') : '',
+    doneAt: editingTodoId ? (todos.find(t=>t.id===editingTodoId)?.doneAt||'') : ''
+  };
+  if(editingTodoId) { todos = todos.map(t=>t.id===editingTodoId?obj:t); addLog('Gorev Guncellendi', title); }
+  else { todos.unshift(obj); addLog('Gorev Eklendi', title); }
+  saveTodos(); closeMod('todo');
+  showToast('✅','Kaydedildi', title);
+  renderTodos(); updateTodoBadge(); renderCalendar(); updateStats(); renderDashboardUpcoming(); renderReminders();
+}
+
+function toggleTodo(id) {
+  todos = todos.map(t => {
+    if(t.id!==id) return t;
+    const done = !t.done;
+    addLog(done?'Gorev Tamamlandi':'Gorev Geri Alindi', t.title);
+    return {...t, done, doneBy: done?currentUser:'', doneAt: done?new Date().toISOString():''};
+  });
+  saveTodos(); renderTodos(); updateTodoBadge(); renderCalendar(); updateStats(); renderDashboardUpcoming(); renderReminders();
+}
+
+function deleteTodoFromModal() {
+  if(!editingTodoId) return;
+  const t = todos.find(x=>x.id===editingTodoId);
+  todos = todos.filter(x=>x.id!==editingTodoId);
+  addLog('Gorev Silindi', t?.title||'');
+  saveTodos(); closeMod('todo');
+  showToast('🗑','Silindi','Gorev silindi.');
+  renderTodos(); updateTodoBadge(); renderCalendar(); updateStats(); renderDashboardUpcoming(); renderReminders();
+}
+
+function updateTodoBadge() {
+  const open = todos.filter(t=>!t.done).length;
+  const b = document.getElementById('badge-todo');
+  if(b){ b.textContent = open; b.style.display = open?'':'none'; }
+}
+
+let todoTimeFilter = 0; // 0=bugün, 3=3gün, 7=7gün, 30=30gün, 999=tümü, -1=tamamlananlar
+
+function filterTodo(days, el) {
+  todoTimeFilter = days;
+  document.querySelectorAll('#page-todo .tabs .tab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  // Tamamlananlar sekmesinde arama kutusunu göster
+  const wrap = document.getElementById('todo-done-search-wrap');
+  if(wrap) wrap.style.display = days === -1 ? 'block' : 'none';
+  if(days !== -1) { const inp = document.getElementById('todo-done-search-input'); if(inp) inp.value = ''; }
+  renderTodos();
+}
+
+function renderTodos() {
+  const cont = document.getElementById('todo-list');
+  if(!cont) return;
+  const fUser = document.getElementById('todo-filter-user')?.value || 'all';
+  // Kullanıcı filtresi listesini güncelle
+  const sel = document.getElementById('todo-filter-user');
+  if(sel) {
+    const cur = sel.value;
+    sel.innerHTML = '<option value="all">Tüm Kullanıcılar</option>' + users.map(u=>`<option value="${u}">${u}</option>`).join('');
+    sel.value = cur;
+  }
+  // Stats
+  const total=todos.length, done=todos.filter(t=>t.done).length, open=total-done;
+  const statsEl = document.getElementById('todo-stats');
+  if(statsEl) statsEl.innerHTML = `
+    <div class="sc gold"><div class="si">📋</div><div class="sv">${total}</div><div class="sl">Toplam Görev</div></div>
+    <div class="sc red"><div class="si">⏳</div><div class="sv">${open}</div><div class="sl">Bekleyen</div></div>
+    <div class="sc green"><div class="si">✅</div><div class="sv">${done}</div><div class="sl">Tamamlanan</div></div>`;
+  let list = [...todos];
+  // Kullanıcı filtresi
+  if(fUser!=='all') list = list.filter(t=>t.assignTo===fUser||t.createdBy===fUser);
+  // Zaman filtresi
+  if(todoTimeFilter === -1) {
+    list = list.filter(t=>t.done);
+    // Arama filtresi
+    const searchVal = (document.getElementById('todo-done-search-input')?.value || '').toLocaleLowerCase('tr-TR').trim();
+    if(searchVal) {
+      list = list.filter(t => {
+        const title = (t.title || '').toLocaleLowerCase('tr-TR');
+        const note = (t.note || '').toLocaleLowerCase('tr-TR');
+        return title.includes(searchVal) || note.includes(searchVal);
+      });
+    }
+  } else if(todoTimeFilter === 0) {
+    list = list.filter(t=>!t.done && t.due && daysDiff(t.due)===0);
+  } else if(todoTimeFilter < 999) {
+    list = list.filter(t=>!t.done && t.due && daysDiff(t.due)>=0 && daysDiff(t.due)<=todoTimeFilter);
+  } else {
+    // Tümü — bekleyenler önce
+    list = list.filter(t=>!t.done);
+  }
+  // Sıralama: acil/süreli iş önce, sonra tarihe göre
+  const priO={urgent:0,high:1,reminder:2,normal:3};
+  list.sort((a,b)=>{
+    const po = (priO[a.priority]||3)-(priO[b.priority]||3);
+    if(po!==0) return po;
+    if(a.due && b.due) return new Date(a.due)-new Date(b.due);
+    if(a.due) return -1; if(b.due) return 1;
+    return 0;
+  });
+  if(!list.length){
+    cont.innerHTML='<div class="empty"><div class="eico">✅</div><p>Bu aralıkta görev bulunamadı.</p></div>';
+    return;
+  }
+  const priColor={urgent:'var(--red)',high:'var(--red)',reminder:'var(--org)',normal:'var(--blu)'};
+  const priLabel={urgent:'Acil',high:'Süreli İş',reminder:'Hatırlatma',normal:'Genel'};
+  cont.innerHTML = list.map(t=>{
+    const diff = t.due ? daysDiff(t.due) : null;
+    const isUrgStyle = (t.priority==='urgent'||t.priority==='high')&&!t.done;
+    const diffLbl = diff===null ? '' : diff<0 ? `<span style="color:var(--red);font-weight:700;">⚠️ ${Math.abs(diff)} gün geçti</span>` : diff===0 ? `<span style="color:var(--red);font-weight:700;">Bugün</span>` : diff===1 ? `<span style="color:var(--org);">Yarın</span>` : `<span style="color:var(--txt3);">${diff} gün sonra</span>`;
+    return `<div style="background:var(--sur);border:1px solid var(--brd);border-radius:var(--r);margin-bottom:8px;display:flex;align-items:stretch;${t.done?'opacity:.55':''}overflow:hidden;">
+      <!-- Tarih kutusu — hatırlatmalar tarzı -->
+      ${t.due ? `<div style="background:${isUrgStyle?'var(--rdim)':'var(--adim)'};border-right:1px solid ${isUrgStyle?'rgba(224,92,92,.2)':'rgba(201,168,92,.2)'};padding:10px 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:52px;flex-shrink:0;">
+        <div style="font-size:18px;font-weight:700;color:${isUrgStyle?'var(--red)':'var(--acc)'};font-family:'DM Mono',monospace;line-height:1;">${new Date(t.due).getDate()}</div>
+        <div style="font-size:9.5px;color:var(--txt3);text-transform:uppercase;letter-spacing:.4px;margin-top:1px;">${TR_MONTHS[new Date(t.due).getMonth()].slice(0,3)}</div>
+      </div>` : `<div style="width:52px;flex-shrink:0;background:var(--sur2);border-right:1px solid var(--brd);display:flex;align-items:center;justify-content:center;"><span style="color:var(--txt3);font-size:18px;">—</span></div>`}
+      <!-- İçerik -->
+      <div style="flex:1;padding:10px 12px;display:flex;align-items:flex-start;gap:10px;">
+        <input type="checkbox" style="width:15px;height:15px;accent-color:var(--acc);margin-top:3px;flex-shrink:0;cursor:pointer;" ${t.done?'checked':''} onchange="toggleTodo('${t.id}')">
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:600;${isUrgStyle?'color:var(--red);':'color:var(--txt);'}${t.done?'text-decoration:line-through;':''}">${t.title}</div>
+          <div style="display:flex;gap:7px;margin-top:4px;flex-wrap:wrap;align-items:center;">
+            <span style="font-size:10px;color:${priColor[t.priority]||'var(--blu)'};background:var(--sur2);padding:1px 7px;border-radius:999px;border:1px solid ${(priColor[t.priority]||'var(--blu)')}33;">${priLabel[t.priority]||'Genel'}</span>
+            ${diffLbl}
+            ${t.assignTo?`<span style="font-size:10.5px;color:var(--txt3);">👤 ${t.assignTo}</span>`:''}
+            <span style="font-size:10.5px;color:var(--txt3);">Ekleyen: ${t.createdBy||'?'}</span>
+            ${t.done&&t.doneBy?`<span style="font-size:10.5px;color:var(--grn);">✓ ${t.doneBy} · ${fmtDate(t.doneAt)}</span>`:''}
+          </div>
+          ${t.note?`<div style="font-size:11.5px;color:var(--txt3);margin-top:5px;line-height:1.5;">${t.note}</div>`:''}
+        </div>
+        <button class="ib" onclick="openTodoModal('${t.id}')">✏️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// =========================================================
+// CHAT
+// =========================================================
+let chatMsgs = [];
+let chatInterval = null;
+let lastChatLen = chatMsgs.length;
+
+function saveChat() { /* chat sunucuya anlık gönderilir */ }
+
+async function sendChat() {
+  const inp = document.getElementById('chat-input');
+  const msg = inp?.value.trim();
+  if(!msg || !currentUser) return;
+  const newMsg = { id: Date.now().toString(), user: currentUser, text: msg, ts: new Date().toISOString() };
+  chatMsgs.push(newMsg);
+  inp.value = '';
+  renderChat(); scrollChat();
+  await API.post('chat', newMsg);
+}
+
+function renderChat() {
+  const cont = document.getElementById('chat-messages');
+  if(!cont) return;
+  if(!chatMsgs.length){ cont.innerHTML='<div class="empty"><div class="eico">💬</div><p>Henüz mesaj yok.</p></div>'; return; }
+  cont.innerHTML = chatMsgs.map(m=>{
+    const isMe = m.user === currentUser;
+    const time = new Date(m.ts).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    return `<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'};gap:2px;">
+      <div style="font-size:10px;color:var(--txt3);padding:0 4px;">${isMe?'Siz':m.user} · ${time}</div>
+      <div style="max-width:75%;background:${isMe?'var(--adim)':'var(--sur2)'};border:1px solid ${isMe?'rgba(201,168,92,.3)':'var(--brd)'};border-radius:${isMe?'12px 2px 12px 12px':'2px 12px 12px 12px'};padding:9px 12px;font-size:13px;color:var(--txt);line-height:1.5;word-break:break-word;">${escHtml(m.text)}</div>
+    </div>`;
+  }).join('');
+}
+
+function scrollChat() {
+  const cont = document.getElementById('chat-messages');
+  if(cont) setTimeout(()=>cont.scrollTop=cont.scrollHeight,50);
+}
+
+function renderChatUsers() {
+  const cont = document.getElementById('chat-users');
+  if(!cont) return;
+  cont.innerHTML = users.map(u=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--brd);">
+      <div style="width:7px;height:7px;border-radius:50%;background:${u===currentUser?'var(--grn)':'var(--txt3)'};flex-shrink:0;"></div>
+      <div style="font-size:12px;color:${u===currentUser?'var(--txt)':'var(--txt2)'};">${u}${u===currentUser?' (Sen)':''}</div>
+    </div>`).join('');
+}
+
+async function updateChatBadge() {
+  const stored = await API.get('chat');
+  if(stored.length > lastChatLen) {
+    const newMsgs = stored.slice(lastChatLen);
+    const activePage = document.querySelector('.page.active')?.id;
+    if(activePage==='page-chat') {
+      chatMsgs = stored; lastChatLen = stored.length;
+      renderChat(); scrollChat();
+    } else {
+      const others = newMsgs.filter(m=>m.user!==currentUser);
+      if(others.length) {
+        const last = others[others.length-1];
+        showToast('💬', last.user, last.text.substring(0,60));
+        const b = document.getElementById('badge-chat');
+        if(b){ b.textContent=others.length; b.style.display=''; }
+      }
+      chatMsgs = stored; lastChatLen = stored.length;
+    }
+  }
+}
+
+function startChatSync() {
+  if(chatInterval) clearInterval(chatInterval);
+  chatInterval = setInterval(updateChatBadge, 2000);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// =========================================================
+// INIT
+// =========================================================
+// Service Worker kaydı
+if('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(r => console.log('SW registered'))
+      .catch(e => console.log('SW error:', e));
+  });
+}
+
+applyTheme();
+initUserSelect();
+
+// API bağlantı katmanını ekle
+const origSelectUser = selectUser;
+selectUser = async function(idx) {
+  // Önce sunucudan veriyi yükle
+  try {
+    await loadAllData();
+  } catch(e) {
+    showToast('⚠️','Bağlantı Hatası','Sunucuya bağlanılamadı. Lütfen sayfayı yenileyin.');
+    return;
+  }
+  origSelectUser(idx);
+};
+</script>
+
+</body>
+</html>
