@@ -410,7 +410,23 @@ textarea.fc{resize:vertical;min-height:70px;}
 <body>
 
 <!-- USER SELECT SCREEN -->
-<div class="user-select-screen" id="user-select">
+<!-- ŞİFRE EKRANI -->
+<div class="user-select-screen" id="password-screen">
+  <div style="font-size:36px;margin-bottom:4px;">⚖️</div>
+  <div class="us-title">Maxima</div>
+  <div class="us-sub">Lütfen şifreyi girin</div>
+  <div style="max-width:300px;width:100%;padding:0 16px;">
+    <input class="fc" id="password-input" type="password" placeholder="Şifre..."
+      style="text-align:center;font-size:16px;margin-bottom:12px;"
+      onkeydown="if(event.key==='Enter') checkPassword()">
+    <button class="btn btn-p w100" onclick="checkPassword()">Giriş</button>
+    <div id="password-error" style="color:var(--red);font-size:12px;margin-top:8px;text-align:center;display:none;">
+      Hatalı şifre. Tekrar deneyin.
+    </div>
+  </div>
+</div>
+
+<div class="user-select-screen" id="user-select" style="display:none;">
   <div style="font-size:36px;margin-bottom:4px;">⚖️</div>
   <div class="us-title">Maxima</div>
   <div class="us-sub">Kullanıcınızı seçin</div>
@@ -1227,6 +1243,20 @@ function addLog(action, detail) {
 // =========================================================
 // USER SYSTEM
 // =========================================================
+function checkPassword() {
+  const input = document.getElementById('password-input');
+  const val = input.value;
+  if(val === 'adınısenkoy') {
+    document.getElementById('password-screen').style.display = 'none';
+    document.getElementById('user-select').style.display = 'flex';
+    initUserSelect();
+  } else {
+    document.getElementById('password-error').style.display = 'block';
+    input.value = '';
+    input.focus();
+  }
+}
+
 function initUserSelect() {
   applyTheme();
   const g = document.getElementById('us-grid');
@@ -2655,6 +2685,14 @@ function updateTodoBadge() {
 
 let todoTimeFilter = 0; // 0=bugün, 3=3gün, 7=7gün, 30=30gün, 999=tümü, -1=tamamlananlar
 
+function populateTodoFilterUser() {
+  const sel = document.getElementById('todo-filter-user');
+  if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="all">Tüm Kullanıcılar</option>' + users.map(u=>`<option value="${u}">${u}</option>`).join('');
+  sel.value = cur;
+}
+
 function filterTodo(days, el) {
   todoTimeFilter = days;
   document.querySelectorAll('#page-todo .tabs .tab').forEach(t=>t.classList.remove('active'));
@@ -2844,7 +2882,9 @@ if('serviceWorker' in navigator) {
 }
 
 applyTheme();
-initUserSelect();
+document.getElementById('password-screen').style.display = 'flex';
+document.getElementById('user-select').style.display = 'none';
+setTimeout(() => document.getElementById('password-input')?.focus(), 300);
 
 // API bağlantı katmanını ekle
 const origSelectUser = selectUser;
