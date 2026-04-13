@@ -1256,10 +1256,15 @@ function addLog(action, detail) {
 // =========================================================
 // USER SYSTEM
 // =========================================================
-function checkPassword() {
+async function checkPassword() {
   const input = document.getElementById('password-input');
   const val = input.value;
   if(val === 'adınısenkoy') {
+    // Önce sunucudan kullanıcıları yükle
+    try {
+      const u = await API.get('users');
+      if(u && u.length) users = u;
+    } catch(e) { console.warn('Users yüklenemedi:', e); }
     document.getElementById('password-screen').style.display = 'none';
     document.getElementById('user-select').style.display = 'flex';
     initUserSelect();
@@ -1305,6 +1310,9 @@ function selectUser(idx) {
   updateCallsBadge();
   startChatSync();
   checkAlarms();
+  // Dava dosyaları sayfasını varsayılan aç
+  const casesNav = document.querySelector('.ni[onclick*="cases"]');
+  goPage('cases', casesNav);
 }
 
 function switchUser() {
