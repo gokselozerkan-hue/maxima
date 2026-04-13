@@ -409,18 +409,27 @@ textarea.fc{resize:vertical;min-height:70px;}
 <body>
 
 <!-- USER SELECT SCREEN -->
-<!-- ŞİFRE EKRANI -->
+<!-- GİRİŞ EKRANI -->
 <div class="user-select-screen" id="password-screen">
   <div style="font-size:36px;margin-bottom:4px;">⚖️</div>
   <div class="us-title">Maxima</div>
-  <div class="us-sub">Lütfen şifreyi girin</div>
-  <div style="max-width:300px;width:100%;padding:0 16px;">
-    <input class="fc" id="password-input" type="password" placeholder="Şifre..."
-      style="text-align:center;font-size:16px;margin-bottom:12px;"
-      onkeydown="if(event.key==='Enter') checkPassword()">
+  <div class="us-sub">Kullanıcı adınızı seçin ve şifrenizi girin</div>
+  <div style="max-width:320px;width:100%;padding:0 16px;">
+    <div class="fg" style="margin-bottom:10px;">
+      <label style="font-size:10.5px;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px;font-weight:500;">Kullanıcı</label>
+      <select class="fc" id="login-user-select" style="font-size:14px;">
+        <option value="">— Seçin —</option>
+      </select>
+    </div>
+    <div class="fg" style="margin-bottom:12px;">
+      <label style="font-size:10.5px;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px;font-weight:500;">Şifre</label>
+      <input class="fc" id="password-input" type="password" placeholder="Şifreniz..."
+        style="font-size:14px;"
+        onkeydown="if(event.key==='Enter') checkPassword()">
+    </div>
     <button class="btn btn-p w100" onclick="checkPassword()">Giriş</button>
     <div id="password-error" style="color:var(--red);font-size:12px;margin-top:8px;text-align:center;display:none;">
-      Hatalı şifre. Tekrar deneyin.
+      Hatalı kullanıcı veya şifre. Tekrar deneyin.
     </div>
   </div>
 </div>
@@ -445,8 +454,14 @@ textarea.fc{resize:vertical;min-height:70px;}
         <input class="fc" id="new-user-input" placeholder="Yeni kullanıcı adı..." style="flex:1;">
         <button class="btn btn-p btn-sm" onclick="addUser()">+ Ekle</button>
       </div>
+      <div class="div-title" style="margin-top:16px;">Kullanıcı Şifreleri</div>
+      <div style="font-size:11.5px;color:var(--txt3);margin-bottom:10px;">Boş bırakılırsa genel şifre (<b>adınısenkoy</b>) geçerlidir.</div>
+      <div id="user-passwords-list"></div>
     </div>
-    <div class="mfoot"><button class="btn btn-s" onclick="closeMod('users')">Kapat</button></div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="closeMod('users')">Kapat</button>
+      <button class="btn btn-p" onclick="saveUserPasswords()">💾 Şifreleri Kaydet</button>
+    </div>
   </div>
 </div>
 
@@ -476,6 +491,7 @@ textarea.fc{resize:vertical;min-height:70px;}
       </div>
       <div style="display:flex;gap:5px;">
         <button class="theme-btn" style="flex:1;" onclick="exportData()">💾 Yedekle</button>
+        <button class="theme-btn" style="flex:1;" onclick="exportExcel()">📊 Excel</button>
         <button class="theme-btn" style="flex:1;" onclick="document.getElementById('import-file').click()">📂 Yükle</button>
       </div>
       <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importData(this)">
@@ -863,6 +879,19 @@ textarea.fc{resize:vertical;min-height:70px;}
           <label class="fc-check" style="padding-bottom:2px;">
             <input type="checkbox" id="c-gider-yapildi">
             <span>Gider avansı yatırıldı ✓</span>
+          </label>
+        </div>
+        <div class="fg"></div>
+      </div>
+
+      <!-- KEŞİF -->
+      <div class="div-title">Keşif / Yerinde İnceleme</div>
+      <div class="frow frow-3">
+        <div class="fg"><label>Keşif / Yerinde İnceleme Tarihi</label><input type="date" class="fc" id="c-kesif-tarih"></div>
+        <div class="fg" style="display:flex;align-items:flex-end;">
+          <label class="fc-check" style="padding-bottom:2px;">
+            <input type="checkbox" id="c-kesif-yapildi">
+            <span>Keşif gerçekleştirildi ✓</span>
           </label>
         </div>
         <div class="fg"></div>
@@ -1257,28 +1286,67 @@ function addLog(action, detail) {
 // USER SYSTEM
 // =========================================================
 async function checkPassword() {
-  const input = document.getElementById('password-input');
-  const val = input.value;
-  if(val === 'adınısenkoy') {
-    // Önce sunucudan kullanıcıları yükle
+  const userSel = document.getElementById('login-user-select');
+  const selectedUser = userSel ? userSel.value : '';
+  const pw = document.getElementById('password-input').value;
+  const errEl = document.getElementById('password-error');
+
+  if(!selectedUser) {
+    errEl.textContent = 'Lütfen kullanıcı seçin.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  // Kullanıcı şifrelerini yükle
+  try {
+    const s = await API.get('settings');
+    if(s) settings = {...settings, ...s};
+  } catch(e) {}
+
+  const passwords = settings.userPasswords || {};
+  const masterPw = 'adınısenkoy';
+  const userPw = passwords[selectedUser];
+
+  // Yönetici şifresi tüm kullanıcılara geçerli
+  // Kullanıcıya özel şifre tanımlıysa onu kontrol et
+  // Tanımlı değilse yönetici şifresi geçerli
+  const isValid = pw === masterPw || (userPw && pw === userPw);
+
+  if(isValid) {
     try {
       const u = await API.get('users');
       if(u && u.length) users = u;
     } catch(e) { console.warn('Users yüklenemedi:', e); }
     document.getElementById('password-screen').style.display = 'none';
-    document.getElementById('user-select').style.display = 'flex';
-    initUserSelect();
+    document.getElementById('user-select').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    // Seçilen kullanıcıyla direkt giriş yap
+    const idx = users.indexOf(selectedUser);
+    if(idx !== -1) {
+      await loadAllData();
+      origSelectUser ? origSelectUser(idx) : selectUser(idx);
+    } else {
+      document.getElementById('user-select').style.display = 'flex';
+      initUserSelect();
+    }
   } else {
-    document.getElementById('password-error').style.display = 'block';
-    input.value = '';
-    input.focus();
+    errEl.textContent = 'Hatalı şifre. Tekrar deneyin.';
+    errEl.style.display = 'block';
+    document.getElementById('password-input').value = '';
+    document.getElementById('password-input').focus();
   }
 }
 
 function initUserSelect() {
   applyTheme();
+  // Giriş ekranındaki kullanıcı select'ini doldur
+  const loginSel = document.getElementById('login-user-select');
+  if(loginSel) {
+    loginSel.innerHTML = '<option value="">— Seçin —</option>' +
+      users.map(u => `<option value="${u}">${u}</option>`).join('');
+  }
   const g = document.getElementById('us-grid');
-  g.innerHTML = users.map((u,i) => `
+  if(g) g.innerHTML = users.map((u,i) => `
     <div class="us-card" onclick="selectUser(${i})">
       <div class="us-av">${getInitials(u)}</div>
       <div class="us-card-name">${u}</div>
@@ -1334,6 +1402,37 @@ function renderUsersList() {
       <button class="btn btn-p btn-xs" onclick="saveUserEdit(${i})">✓ Kaydet</button>
       <button class="ib" onclick="removeUser(${i})">🗑</button>
     </div>`).join('');
+  renderUserPasswordsList();
+}
+
+function renderUserPasswordsList() {
+  const cont = document.getElementById('user-passwords-list');
+  if(!cont) return;
+  const passwords = settings.userPasswords || {};
+  cont.innerHTML = users.map(u => {
+    const safeId = u.replace(/[^a-zA-Z0-9]/g,'_');
+    const pw = passwords[u] || '';
+    return `<div class="flex" style="padding:6px 0;border-bottom:1px solid var(--brd);gap:8px;">
+      <div style="flex:1;font-size:12.5px;font-weight:600;color:var(--txt);padding:8px 0;">${u}</div>
+      <input class="fc" style="flex:1;" id="upw-${safeId}" type="text" value="${pw}" placeholder="Boşsa genel şifre geçerli">
+    </div>`;
+  }).join('');
+}
+
+async function saveUserPasswords() {
+  const passwords = {};
+  users.forEach(u => {
+    const safeId = u.replace(/[^a-zA-Z0-9]/g,'_');
+    const el = document.getElementById('upw-'+safeId);
+    if(el && el.value.trim()) passwords[u] = el.value.trim();
+  });
+  settings.userPasswords = passwords;
+  if(typeof API !== 'undefined') {
+    await API.post('settings', settings);
+  } else {
+    localStorage.setItem('mx_settings', JSON.stringify(settings));
+  }
+  showToast('✅','Kaydedildi','Kullanıcı şifreleri güncellendi.');
 }
 
 async function saveUserEdit(i) {
@@ -1469,6 +1568,7 @@ function getAllDates() {
     add(c.icraTebligTarih, '📨 İcra Tebliğ Kontrol', 'other', 'normal');
     add(c.teminatTarih, '🔒 Teminat Kontrol', 'other', 'normal');
     (c.durusmalar||[]).forEach(d => { if(d.tarih) result.push({ date: d.tarih.trim(), title: '🏛 Duruşma — ' + (c.muv||'') + (d.saat?' '+d.saat:''), sub: 'Büro: '+(c.buro||'?')+' — '+d.saat, priority: 'low', type: 'hearing', noAlarm: true }); });
+    if(c.kesifTarih && c.kesifTarih.trim()) result.push({ date: c.kesifTarih.trim(), title: '🔍 Keşif/Yerinde İnceleme — ' + (c.muv||''), sub: 'Büro: '+(c.buro||'?'), priority: 'low', type: 'hearing', noAlarm: true });
     (c.muzekkere||[]).forEach(m => {
       if(m.hatirlatma) add(m.hatirlatma, `📋 Müzekkere Hatırlatma: ${m.ad}`, 'deadline', 'normal');
     });
@@ -1605,11 +1705,11 @@ function openEditCase(id) {
 function resetCaseForm() {
   const ids = ['c-buro','c-muv','c-tel','c-karsitaraf','c-mahkeme','c-esas',
     'c-arabulucu','c-dava-ac','c-zamanasimi','c-delil-tarih','c-tanik-tarih','c-beyan-tarih',
-    'c-gider-tarih','c-islah-tarih','c-islah-not','c-istinaf-aciklama',
+    'c-gider-tarih','c-kesif-tarih','c-islah-tarih','c-islah-not','c-istinaf-aciklama',
     'c-gk-tarih','c-istinaf-tarih','c-kt-istinaf-tarih','c-ise-iade-tarih','c-teblig-serhi-tarih',
     'c-icra-daire','c-icra-esas','c-icra-teblig-tarih','c-teminat-tarih','c-icra-not','c-not'];
   ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-  const chks = ['c-arabulucu-bilgi','c-dava-ac-bilgi','c-delil-yapildi','c-tanik-yapildi','c-beyan-yapildi','c-gider-yapildi',
+  const chks = ['c-arabulucu-bilgi','c-dava-ac-bilgi','c-delil-yapildi','c-tanik-yapildi','c-beyan-yapildi','c-gider-yapildi','c-kesif-yapildi',
     'c-islah-yapilacak','c-islah-yapilmayacak','c-islah-yapildi','c-gk-yazildi','c-gk-teblig',
     'c-istinaf-yapilacak','c-istinaf-edilmeyecek','c-istinaf-yapildi','c-kt-istinaf-yapti','c-ihtar-gonderildi',
     'c-icra-yapildi','c-icra-teblig-yapildi','c-teminat-yapildi','c-icra-tahsil',
@@ -1634,7 +1734,8 @@ function fillCaseForm(c) {
   set('c-zamanasimi', c.zamanasimi);
   set('c-delil-tarih',c.delilTarih); chk('c-delil-yapildi',c.delilYapildi);
   set('c-beyan-tarih',c.beyanTarih); chk('c-beyan-yapildi',c.beyanYapildi);
-  set('c-gider-tarih',c.giderTarih); chk('c-gider-yapildi',c.giderYapildi);
+  set('c-gider-tarih',c.giderTarih); chk('c-gider-yapildi','c-kesif-yapildi',c.giderYapildi);
+  set('c-kesif-tarih',c.kesifTarih); chk('c-kesif-yapildi',c.kesifYapildi);
   chk('c-bil-gitti',c.bilGitti); chk('c-bil-dondu',c.bilDondu);
   set('c-bil-beyan-tarih',c.bilBeyanTarih); chk('c-bil-beyan-yapildi',c.bilBeyanYapildi);
   chk('c-islah-yapilacak',c.islahYapilacak); set('c-islah-tarih',c.islahTarih);
@@ -1669,6 +1770,7 @@ function readCaseForm() {
     tanikTarih: g('c-tanik-tarih'), tanikYapildi:c('c-tanik-yapildi'),
     beyanTarih: g('c-beyan-tarih'), beyanYapildi:c('c-beyan-yapildi'),
     giderTarih:g('c-gider-tarih'), giderYapildi:c('c-gider-yapildi'),
+    kesifTarih:g('c-kesif-tarih'), kesifYapildi:c('c-kesif-yapildi'),
     bilirkisiList: tmpBilirkisi,
     islahYapilacak:c('c-islah-yapilacak'), islahYapilmayacak:c('c-islah-yapilmayacak'), islahTarih: g('c-islah-tarih'),
     islahYapildi:c('c-islah-yapildi'), islahNot:g('c-islah-not'),
@@ -2029,7 +2131,7 @@ function renderBilList() {
           <input type="date" class="fc" value="${b.beyanTarih||''}" onchange="handleBilDateField(this,${i})">
         </div>
         <div class="fg" style="display:flex;align-items:flex-end;">
-          <label class="fc-check"><input type="checkbox" ${b.beyanYapildi?'checked':''} onchange="tmpBilirkisi[${i}].beyanYapildi=this.checked"><span>Beyan yapıldı ✓</span></label>
+          <label class="fc-check"><input type="checkbox" ${b.beyanYapildi?'checked':''} onchange="tmpBilirkisi[${i}].beyanYapildi=this.checked"><span>Beyan yazıldı ✓</span></label>
         </div>
       </div>
       <div class="frow" style="margin-top:6px;">
@@ -2217,6 +2319,66 @@ function renderCalls() {
 // =========================================================
 // BACKUP / RESTORE
 // =========================================================
+
+// =========================================================
+// EXCEL RAPORU
+// =========================================================
+function exportExcel() {
+  if(!cases.length){ showToast('⚠️','Boş','Dışa aktarılacak dava yok.'); return; }
+
+  const statusLbl = {
+    arabulucu:'Arabulucuya Başvurulacak', davaacilacak:'Dava Açılacak',
+    active:'İlk Derece', bam:'BAM', infaz:'İnfaz', urgent:'Acil', closed:'Kapalı'
+  };
+  const kararLbl = { kabul:'Kabul', red:'Red', kismi:'Kısmi Kabul', '':'—' };
+
+  const headers = [
+    'Büro No','Durum','Dava Türü','Mahkeme Kararı',
+    'Müvekkil Adı Soyadı','Müvekkil Telefonu','Karşı Taraf',
+    'Mahkeme Adı','Esas Numarası','Zamanaşımı Tarihi',
+    'Arabuluculuğa Başvuru Tarihi','Dava Tarihi',
+    'Genel Not','İcra Dairesi','İcra Esas No'
+  ];
+
+  const rows = cases.map(c => [
+    c.buro || '',
+    statusLbl[c.status] || c.status || '',
+    c.tur || '',
+    kararLbl[c.karar] !== undefined ? kararLbl[c.karar] : (c.karar || '—'),
+    c.muv || '',
+    c.tel || '',
+    c.karsitaraf || '',
+    c.mahkeme || '',
+    c.esas || '',
+    c.zamanasimi ? fmtDate(c.zamanasimi) : '',
+    c.arabulucu ? fmtDate(c.arabulucu) : '',
+    c.davaAc ? fmtDate(c.davaAc) : '',
+    c.not || '',
+    c.icraDaire || '',
+    c.icraEsas || ''
+  ]);
+
+  // CSV olarak oluştur (Excel UTF-8 BOM ile açar)
+  const escape = v => {
+    const s = String(v).replace(/"/g, '""');
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s}"` : s;
+  };
+
+  const BOM = '\uFEFF';
+  const csv = BOM + [headers, ...rows].map(r => r.map(escape).join(',')).join('\n');
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toLocaleDateString('tr-TR').replace(/\./g,'-');
+  a.href = url;
+  a.download = `Maxima_Dava_Raporu_${date}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📊','Excel Hazır', cases.length + ' dava dışa aktarıldı.');
+  addLog('Excel Raporu', cases.length + ' dava dışa aktarıldı');
+}
+
 function exportData() {
   // Sunucudan yedek indir
   window.location.href = '/api/backup';
@@ -2323,7 +2485,7 @@ function renderBilList() {
           <input type="date" class="fc" value="${b.beyanTarih||''}" onchange="handleBilDateField(this,${i})">
         </div>
         <div class="fg" style="display:flex;align-items:flex-end;">
-          <label class="fc-check"><input type="checkbox" ${b.beyanYapildi?'checked':''} onchange="tmpBilirkisi[${i}].beyanYapildi=this.checked"><span>Beyan yapıldı ✓</span></label>
+          <label class="fc-check"><input type="checkbox" ${b.beyanYapildi?'checked':''} onchange="tmpBilirkisi[${i}].beyanYapildi=this.checked"><span>Beyan yazıldı ✓</span></label>
         </div>
       </div>
       <div class="frow" style="margin-top:6px;">
@@ -2904,7 +3066,15 @@ function escHtml(s) {
 applyTheme();
 document.getElementById('password-screen').style.display = 'flex';
 document.getElementById('user-select').style.display = 'none';
-setTimeout(() => document.getElementById('password-input')?.focus(), 300);
+// Kullanıcı listesini önceden yükle
+(async () => {
+  try {
+    const u = await API.get('users');
+    if(u && u.length) users = u;
+  } catch(e) {}
+  initUserSelect();
+  setTimeout(() => document.getElementById('password-input')?.focus(), 300);
+})();
 
 // API bağlantı katmanını ekle
 const origSelectUser = selectUser;
