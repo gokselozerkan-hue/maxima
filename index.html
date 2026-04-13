@@ -3066,12 +3066,16 @@ function escHtml(s) {
 applyTheme();
 document.getElementById('password-screen').style.display = 'flex';
 document.getElementById('user-select').style.display = 'none';
-// Kullanıcı listesini önceden yükle
+// Kullanıcı listesini sunucudan yükle — retry ile
 (async () => {
-  try {
-    const u = await API.get('users');
-    if(u && u.length) users = u;
-  } catch(e) {}
+  for(let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const u = await API.get('users');
+      if(u && Array.isArray(u) && u.length) { users = u; break; }
+    } catch(e) {
+      await new Promise(r => setTimeout(r, 500));
+    }
+  }
   initUserSelect();
   setTimeout(() => document.getElementById('password-input')?.focus(), 300);
 })();
