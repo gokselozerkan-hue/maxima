@@ -7,7 +7,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Maxima">
-<link rel="manifest" href="manifest.json">
 <title>Maxima — Avukatlık Yönetim Sistemi</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -780,8 +779,22 @@ textarea.fc{resize:vertical;min-height:70px;}
       <!-- ARABULUCULUK & DAVA TARİHLERİ -->
       <div class="div-title">Arabuluculuk & Dava Tarihleri</div>
       <div class="frow frow-3">
-        <div class="fg"><label>Arabuluculuğa Başvuru Tarihi</label><input type="date" class="fc" id="c-arabulucu" onchange="handleDateField(this,'Arabuluculuğa Başvuru')"></div>
-        <div class="fg"><label>Dava Açılacak Tarih (Arb. Başarısız)</label><input type="date" class="fc" id="c-dava-ac" onchange="handleDateField(this,'Dava Açılacak Son Gün')"></div>
+        <div class="fg">
+          <label>Arabuluculuğa Başvuru Tarihi</label>
+          <input type="date" class="fc" id="c-arabulucu" onchange="handleDateField(this,'Arabuluculuğa Başvuru')">
+          <label class="fc-check" style="margin-top:7px;">
+            <input type="checkbox" id="c-arabulucu-bilgi">
+            <span style="font-size:12px;">Müvekkile bilgi verildi ✓</span>
+          </label>
+        </div>
+        <div class="fg">
+          <label>Dava Açılacak Tarih (Arb. Başarısız)</label>
+          <input type="date" class="fc" id="c-dava-ac" onchange="handleDateField(this,'Dava Açılacak Son Gün')">
+          <label class="fc-check" style="margin-top:7px;">
+            <input type="checkbox" id="c-dava-ac-bilgi">
+            <span style="font-size:12px;">Müvekkile bilgi verildi ✓</span>
+          </label>
+        </div>
         <div class="fg"><label>Zamanaşımı Tarihi</label><input type="date" class="fc" id="c-zamanasimi"></div>
       </div>
 
@@ -1588,7 +1601,7 @@ function resetCaseForm() {
     'c-gk-tarih','c-istinaf-tarih','c-kt-istinaf-tarih','c-ise-iade-tarih','c-teblig-serhi-tarih',
     'c-icra-daire','c-icra-esas','c-icra-teblig-tarih','c-teminat-tarih','c-icra-not','c-not'];
   ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-  const chks = ['c-delil-yapildi','c-tanik-yapildi','c-beyan-yapildi','c-gider-yapildi',
+  const chks = ['c-arabulucu-bilgi','c-dava-ac-bilgi','c-delil-yapildi','c-tanik-yapildi','c-beyan-yapildi','c-gider-yapildi',
     'c-islah-yapilacak','c-islah-yapilmayacak','c-islah-yapildi','c-gk-yazildi','c-gk-teblig',
     'c-istinaf-yapilacak','c-istinaf-edilmeyecek','c-istinaf-yapildi','c-kt-istinaf-yapti','c-ihtar-gonderildi',
     'c-icra-yapildi','c-icra-teblig-yapildi','c-teminat-yapildi','c-icra-tahsil',
@@ -1608,8 +1621,8 @@ function fillCaseForm(c) {
   set('c-karsitaraf',c.karsitaraf); set('c-mahkeme',c.mahkeme); set('c-esas',c.esas);
   set('c-konu',c.konu); set('c-status',c.status); set('c-tur',c.tur); set('c-karar',c.karar||'');
 
-  set('c-arabulucu',c.arabulucu);
-  set('c-dava-ac',c.davaAc);
+  set('c-arabulucu',c.arabulucu); chk('c-arabulucu-bilgi',c.arabulucuBilgi);
+  set('c-dava-ac',c.davaAc); chk('c-dava-ac-bilgi',c.davaAcBilgi);
   set('c-zamanasimi', c.zamanasimi);
   set('c-delil-tarih',c.delilTarih); chk('c-delil-yapildi',c.delilYapildi);
   set('c-beyan-tarih',c.beyanTarih); chk('c-beyan-yapildi',c.beyanYapildi);
@@ -1641,8 +1654,8 @@ function readCaseForm() {
     buro:g('c-buro'), muv:g('c-muv'), tel:g('c-tel'), karsitaraf:g('c-karsitaraf'),
     mahkeme:g('c-mahkeme'), esas:g('c-esas'), konu:g('c-konu'),
     status:g('c-status'), tur:g('c-tur'), karar:g('c-karar'),
-    arabulucu: g('c-arabulucu'),
-    davaAc: g('c-dava-ac'),
+    arabulucu: g('c-arabulucu'), arabulucuBilgi: c('c-arabulucu-bilgi'),
+    davaAc: g('c-dava-ac'), davaAcBilgi: c('c-dava-ac-bilgi'),
     zamanasimi:g('c-zamanasimi'),
     delilTarih: g('c-delil-tarih'), delilYapildi:c('c-delil-yapildi'),
     tanikTarih: g('c-tanik-tarih'), tanikYapildi:c('c-tanik-yapildi'),
@@ -1711,18 +1724,24 @@ function deleteCaseFromModal() {
 
 // DURUŞMA
 function addDurusma() {
-  tmpDurusmalar.push({ id: Date.now().toString(), tarih:'', saat:'09:00', not:'' });
+  tmpDurusmalar.push({ id: Date.now().toString(), tarih:'', saat:'09:00', not:'', muvekkilBilgi:false });
   renderDurusmaList();
 }
 function renderDurusmaList() {
   const cont = document.getElementById('durusma-list');
   if(!tmpDurusmalar.length){ cont.innerHTML='<div class="txt-3" style="font-size:12px;padding:4px 0;">Henüz duruşma eklenmedi.</div>'; return; }
   cont.innerHTML = tmpDurusmalar.map((d,i)=>`
-    <div class="flex" style="gap:8px;padding:6px 0;border-bottom:1px solid var(--brd);">
-      <input type="date" class="fc" style="flex:2;" value="${d.tarih}" onchange="tmpDurusmalar[${i}].tarih=this.value">
-      <input type="time" class="fc" style="flex:1;" value="${d.saat}" onchange="tmpDurusmalar[${i}].saat=this.value">
-      <input class="fc" style="flex:3;" placeholder="Not..." value="${d.not||''}" onchange="tmpDurusmalar[${i}].not=this.value">
-      <button class="ib" onclick="tmpDurusmalar.splice(${i},1);renderDurusmaList()">🗑</button>
+    <div style="padding:8px 0;border-bottom:1px solid var(--brd);">
+      <div class="flex" style="gap:8px;margin-bottom:6px;">
+        <input type="date" class="fc" style="flex:2;" value="${d.tarih}" onchange="tmpDurusmalar[${i}].tarih=this.value">
+        <input type="time" class="fc" style="flex:1;" value="${d.saat}" onchange="tmpDurusmalar[${i}].saat=this.value">
+        <input class="fc" style="flex:3;" placeholder="Not..." value="${d.not||''}" onchange="tmpDurusmalar[${i}].not=this.value">
+        <button class="ib" onclick="if(confirm('Bu duruşmayı silmek istiyor musunuz?')) { tmpDurusmalar.splice(${i},1);renderDurusmaList(); }">🗑</button>
+      </div>
+      <label class="fc-check" style="padding-left:2px;">
+        <input type="checkbox" ${d.muvekkilBilgi?'checked':''} onchange="tmpDurusmalar[${i}].muvekkilBilgi=this.checked">
+        <span style="font-size:12px;">Müvekkile bilgi verildi ✓</span>
+      </label>
     </div>`).join('');
 }
 
@@ -2872,14 +2891,7 @@ function escHtml(s) {
 // =========================================================
 // INIT
 // =========================================================
-// Service Worker kaydı
-if('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js')
-      .then(r => console.log('SW registered'))
-      .catch(e => console.log('SW error:', e));
-  });
-}
+
 
 applyTheme();
 document.getElementById('password-screen').style.display = 'flex';
