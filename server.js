@@ -100,6 +100,11 @@ const server = http.createServer(async(req,res)=>{
   if(pathname==='/'||pathname==='/index.html')
     return serveFile(res,path.join(__dirname,'index.html'));
 
+  // PWA statik dosyalar
+  const staticFiles = ['/manifest.json','/sw.js','/icon-192.png','/icon-512.png'];
+  if(staticFiles.includes(pathname))
+    return serveFile(res,path.join(__dirname,pathname.slice(1)));
+
   if(pathname.startsWith('/api/')) {
     const parts = pathname.split('/').filter(Boolean);
     const resource = parts[1];
