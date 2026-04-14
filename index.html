@@ -816,6 +816,12 @@ textarea.fc{resize:vertical;min-height:70px;}
         <div class="fg"><label>Zamanaşımı Tarihi</label><input type="date" class="fc" id="c-zamanasimi"></div>
       </div>
 
+      <!-- GÜNCEL DURUM -->
+      <div class="div-title">Güncel Durum</div>
+      <div class="frow">
+        <div class="fg"><label>Güncel Durum</label><textarea class="fc" id="c-guncel-durum" placeholder="Davanın güncel durumu..." rows="3"></textarea></div>
+      </div>
+
       <!-- GENEL NOT -->
       <div class="div-title">Genel Not</div>
       <div class="frow">
@@ -1740,7 +1746,7 @@ function openEditCase(id) {
 }
 
 function resetCaseForm() {
-  const ids = ['c-buro','c-muv','c-tel','c-karsitaraf','c-mahkeme','c-esas',
+  const ids = ['c-buro','c-muv','c-tel','c-karsitaraf','c-mahkeme','c-esas','c-guncel-durum',
     'c-arabulucu','c-dava-ac','c-zamanasimi','c-delil-tarih','c-tanik-tarih','c-beyan-tarih',
     'c-gider-tarih','c-kesif-tarih','c-islah-tarih','c-islah-not','c-istinaf-aciklama',
     'c-gk-tarih','c-istinaf-tarih','c-kt-istinaf-tarih','c-ise-iade-tarih','c-teblig-serhi-tarih',
@@ -1786,7 +1792,9 @@ function fillCaseForm(c) {
   set('c-icra-esas',c.icraEsas); set('c-icra-teblig-tarih',c.icraTebligTarih);
   chk('c-icra-teblig-yapildi',c.icraTebligYapildi); set('c-teminat-tarih',c.teminatTarih);
   chk('c-teminat-yapildi',c.teminatYapildi); chk('c-icra-tahsil',c.icraTahsil);
-  set('c-icra-not',c.icraNot); set('c-not',c.not);
+  set('c-icra-not',c.icraNot);
+  set('c-guncel-durum',c.guncelDurum);
+  set('c-not',c.not);
   tmpDurusmalar = JSON.parse(JSON.stringify(c.durusmalar||[]));
   tmpMuzekkere = JSON.parse(JSON.stringify(c.muzekkere||[]));
   tmpGenelNotlar = JSON.parse(JSON.stringify(c.genelNotlar||[]));
