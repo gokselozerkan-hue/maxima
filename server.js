@@ -26,7 +26,7 @@ async function initDB() {
 
 const DEFAULTS = {
   cases:'[]',events:'[]',todos:'[]',calls:'[]',chat:'[]',logs:'[]',
-  users:'["Av. 1","Av. 2","Av. 3","Av. 4","Av. 5"]',
+  users:'["Av. Göksel Özerkan","Av. Berker Ünal","Av. Fatmanur Şenocak","Av. Aslıhan Bilgin","Mine Yılmazoğlu"]',
   settings:'{"theme":"dark","alarmDays":3}',
 };
 
