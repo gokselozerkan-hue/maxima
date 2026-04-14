@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Maxima">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#c9a85c">
 <title>Maxima — Avukatlık Yönetim Sistemi</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -3109,6 +3111,11 @@ function escHtml(s) {
 // INIT
 // =========================================================
 
+
+// PWA Service Worker
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
 
 applyTheme();
 document.getElementById('password-screen').style.display = 'flex';
