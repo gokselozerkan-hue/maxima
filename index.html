@@ -2360,114 +2360,69 @@ function renderCalls() {
 // =========================================================
 function exportExcel() {
   if(!cases.length){ showToast('⚠️','Boş','Dışa aktarılacak dava yok.'); return; }
+  showToast('📊','Hazırlanıyor','Excel dosyası oluşturuluyor...');
 
+  // Sunucu versiyonu: API'ye gönder
+  if(typeof API !== 'undefined') {
+    fetch('/api/export-excel', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ cases: cases })
+    }).then(r => {
+      if(!r.ok) throw new Error('Sunucu hatası');
+      return r.blob();
+    }).then(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const date = new Date().toLocaleDateString('tr-TR').replace(/\./g,'-');
+      a.href = url; a.download = `Maxima_Dava_Raporu_${date}.xlsx`; a.click();
+      URL.revokeObjectURL(url);
+      showToast('📊','Excel Hazır', cases.length + ' dava dışa aktarıldı.');
+      addLog('Excel Raporu', cases.length + ' dava dışa aktarıldı');
+    }).catch(err => {
+      console.error(err);
+      exportExcelCSV();
+    });
+    return;
+  }
+  // Lokal versiyon: CSV
+  exportExcelCSV();
+}
+
+function exportExcelCSV() {
   const statusLbl = {
     arabulucu:'Arabulucuya Başvurulacak', davaacilacak:'Dava Açılacak',
     active:'İlk Derece', bam:'BAM', infaz:'İnfaz', urgent:'Acil', closed:'Kapalı'
   };
-
   const headers = [
     'BÜRO NO','DURUMU','MÜVEKKİL ADI SOYADI','MÜVEKKİL TELEFONU',
     'KARŞI TARAF','DAVA TÜRÜ','MAHKEME ADI','ESAS NO',
     'ARABULUCULUĞA BAŞVURU TARİHİ','DAVA AÇILACAK TARİH',
-    'ZAMANAŞIMI TARİHİ','GENEL NOT',
-    'KEŞİF/YERİNDE İNCELEME TARİHİ',
-    'ISLAH SON GÜN','İSTİNAF SON GÜN',
-    'İCRA DAİRESİ','İCRA ESAS NO','İCRA NOTLARI'
+    'ZAMANAŞIMI TARİHİ','GENEL NOT','KEŞİF/YERİNDE İNCELEME TARİHİ',
+    'ISLAH SON GÜN','İSTİNAF SON GÜN','İCRA DAİRESİ','İCRA ESAS NO','İCRA NOTLARI'
   ];
-
   const rows = cases.map(c => [
-    c.buro||'',
-    statusLbl[c.status]||c.status||'',
-    c.muv||'',
-    c.tel||'',
-    c.karsitaraf||'',
-    c.tur||'',
-    c.mahkeme||'',
-    c.esas||'',
-    c.arabulucu ? fmtDate(c.arabulucu) : '',
-    c.davaAc ? fmtDate(c.davaAc) : '',
-    c.zamanasimi ? fmtDate(c.zamanasimi) : '',
-    c.not||'',
+    c.buro||'', statusLbl[c.status]||c.status||'', c.muv||'', c.tel||'',
+    c.karsitaraf||'', c.tur||'', c.mahkeme||'', c.esas||'',
+    c.arabulucu ? fmtDate(c.arabulucu) : '', c.davaAc ? fmtDate(c.davaAc) : '',
+    c.zamanasimi ? fmtDate(c.zamanasimi) : '', c.not||'',
     c.kesifTarih ? fmtDate(c.kesifTarih) : '',
     c.islahTarih ? fmtDate(c.islahTarih) : '',
     c.istinafTarih ? fmtDate(c.istinafTarih) : '',
-    c.icraDaire||'',
-    c.icraEsas||'',
-    c.icraNot||''
+    c.icraDaire||'', c.icraEsas||'', c.icraNot||''
   ]);
-
-  // SheetJS ile xlsx oluştur
-  const script = document.createElement('script');
-  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-  script.onload = () => {
-    const wb = XLSX.utils.book_new();
-    const wsData = [headers, ...rows];
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-    // Sütun genişlikleri
-    const colWidths = [13,18,14,13,13,13,12,10,17,13,13,13,15,13,13,13,13,13];
-    ws['!cols'] = colWidths.map(w => ({ wpx: w * 7 }));
-
-    // Satır yüksekliği — başlık satırı
-    ws['!rows'] = [{ hpx: 44 }];
-
-    // Başlık stili
-    const headerStyle = {
-      font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11, name: 'Calibri' },
-      fill: { patternType: 'solid', fgColor: { rgb: '757171' } },
-      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
-      border: {
-        top: { style: 'thin', color: { rgb: '000000' } },
-        bottom: { style: 'thin', color: { rgb: '000000' } },
-        left: { style: 'thin', color: { rgb: '000000' } },
-        right: { style: 'thin', color: { rgb: '000000' } }
-      }
-    };
-
-    // Veri hücresi stili
-    const dataStyle = {
-      font: { sz: 11, name: 'Calibri' },
-      alignment: { horizontal: 'left', vertical: 'center', wrapText: true },
-      border: {
-        top: { style: 'thin', color: { rgb: 'D3D3D3' } },
-        bottom: { style: 'thin', color: { rgb: 'D3D3D3' } },
-        left: { style: 'thin', color: { rgb: 'D3D3D3' } },
-        right: { style: 'thin', color: { rgb: 'D3D3D3' } }
-      }
-    };
-
-    // Stilleri uygula
-    const range = XLSX.utils.decode_range(ws['!ref']);
-    for(let R = range.s.r; R <= range.e.r; R++) {
-      for(let C = range.s.c; C <= range.e.c; C++) {
-        const addr = XLSX.utils.encode_cell({r:R, c:C});
-        if(!ws[addr]) ws[addr] = { v: '', t: 's' };
-        ws[addr].s = R === 0 ? headerStyle : dataStyle;
-      }
-    }
-
-    XLSX.utils.book_append_sheet(wb, ws, 'Dava Raporu');
-    const date = new Date().toLocaleDateString('tr-TR').replace(/\./g,'-');
-    XLSX.writeFile(wb, `Maxima_Dava_Raporu_${date}.xlsx`);
-    showToast('📊','Excel Hazır', cases.length + ' dava dışa aktarıldı.');
-    addLog('Excel Raporu', cases.length + ' dava dışa aktarıldı');
-  };
-  script.onerror = () => {
-    // SheetJS yüklenemezse CSV'ye düş
-    const BOM = '\uFEFF';
-    const escape = v => { const s = String(v).replace(/"/g,'""'); return s.includes(',') || s.includes('"') ? `"${s}"` : s; };
-    const csv = BOM + [headers,...rows].map(r=>r.map(escape).join(',')).join('\n');
-    const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const date = new Date().toLocaleDateString('tr-TR').replace(/\./g,'-');
-    a.href=url; a.download=`Maxima_Dava_Raporu_${date}.csv`; a.click();
-    URL.revokeObjectURL(url);
-    showToast('📊','CSV İndirildi', cases.length + ' dava dışa aktarıldı.');
-  };
-  document.head.appendChild(script);
+  const escape = v => { const s=String(v).replace(/"/g,'""'); return s.includes(',')||s.includes('"')?`"${s}"`:s; };
+  const BOM = '\uFEFF';
+  const csv = BOM + [headers,...rows].map(r=>r.map(escape).join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toLocaleDateString('tr-TR').replace(/\./g,'-');
+  a.href=url; a.download=`Maxima_Dava_Raporu_${date}.csv`; a.click();
+  URL.revokeObjectURL(url);
+  showToast('📊','CSV İndirildi', cases.length + ' dava dışa aktarıldı.');
 }
+
 
 
 
