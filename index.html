@@ -2367,33 +2367,38 @@ function exportExcel() {
   };
   const kararLbl = { kabul:'Kabul', red:'Red', kismi:'Kısmi Kabul', '':'—' };
 
+  // Başlık satırı — Excel şablonuyla aynı sıra ve isimler
   const headers = [
-    'Büro No','Durum','Dava Türü','Mahkeme Kararı',
-    'Müvekkil Adı Soyadı','Müvekkil Telefonu','Karşı Taraf',
-    'Mahkeme Adı','Esas Numarası','Zamanaşımı Tarihi',
-    'Arabuluculuğa Başvuru Tarihi','Dava Tarihi',
-    'Genel Not','İcra Dairesi','İcra Esas No'
+    'BÜRO NO', 'DURUMU', 'MÜVEKKİL ADI SOYADI', 'MÜVEKKİL TELEFONU',
+    'KARŞI TARAF', 'DAVA TÜRÜ', 'MAHKEME ADI', 'ESAS NO',
+    'ARABULUCULUĞA BAŞVURU TARİHİ', 'DAVA AÇILACAK TARİH',
+    'ZAMANAŞIMI TARİHİ', 'GENEL NOT',
+    'KEŞİF/YERİNDE İNCELEME TARİHİ',
+    'ISLAH SON GÜN', 'İSTİNAF SON GÜN',
+    'İCRA DAİRESİ', 'İCRA ESAS NO', 'İCRA NOTLARI'
   ];
 
   const rows = cases.map(c => [
     c.buro || '',
     statusLbl[c.status] || c.status || '',
-    c.tur || '',
-    kararLbl[c.karar] !== undefined ? kararLbl[c.karar] : (c.karar || '—'),
     c.muv || '',
     c.tel || '',
     c.karsitaraf || '',
+    c.tur || '',
     c.mahkeme || '',
     c.esas || '',
-    c.zamanasimi ? fmtDate(c.zamanasimi) : '',
     c.arabulucu ? fmtDate(c.arabulucu) : '',
     c.davaAc ? fmtDate(c.davaAc) : '',
+    c.zamanasimi ? fmtDate(c.zamanasimi) : '',
     c.not || '',
+    c.kesifTarih ? fmtDate(c.kesifTarih) : '',
+    c.islahTarih ? fmtDate(c.islahTarih) : '',
+    c.istinafTarih ? fmtDate(c.istinafTarih) : '',
     c.icraDaire || '',
-    c.icraEsas || ''
+    c.icraEsas || '',
+    c.icraNot || ''
   ]);
 
-  // CSV olarak oluştur (Excel UTF-8 BOM ile açar)
   const escape = v => {
     const s = String(v).replace(/"/g, '""');
     return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s}"` : s;
@@ -2413,6 +2418,7 @@ function exportExcel() {
   showToast('📊','Excel Hazır', cases.length + ' dava dışa aktarıldı.');
   addLog('Excel Raporu', cases.length + ' dava dışa aktarıldı');
 }
+
 
 function exportData() {
   // Sunucudan yedek indir
