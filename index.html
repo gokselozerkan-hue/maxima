@@ -440,7 +440,7 @@ textarea.fc{resize:vertical;min-height:70px;}
   <div class="us-sub">Kullanıcınızı seçin</div>
   <div class="us-grid" id="us-grid"></div>
   <div style="margin-top:16px;">
-    <button class="btn btn-s btn-sm" onclick="openUserSettings()">⚙️ Kullanıcıları Düzenle</button>
+    <button class="btn btn-s btn-sm" id="btn-user-settings" onclick="openUserSettings()" style="display:none;">⚙️ Kullanıcıları Düzenle</button>
   </div>
 </div>
 
@@ -1229,6 +1229,7 @@ let users = ['Av. 1','Av. 2','Av. 3','Av. 4','Av. 5'];
 let logs = [];
 let settings = {theme:'dark', alarmDays:3};
 let currentUser = null;
+let isAdmin = false; // Genel şifreyle giriş yapıldıysa true
 let editingCaseId = null;
 let caseFilter = 'all', caseSearch = '';
 let calYear, calMonth, selDay = null;
@@ -1313,6 +1314,7 @@ async function checkPassword() {
   const isValid = pw === masterPw || (userPw && pw === userPw);
 
   if(isValid) {
+    isAdmin = (pw === masterPw);
     try {
       const u = await API.get('users');
       if(u && u.length) users = u;
@@ -1320,7 +1322,6 @@ async function checkPassword() {
     document.getElementById('password-screen').style.display = 'none';
     document.getElementById('user-select').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
-    // Seçilen kullanıcıyla direkt giriş yap
     const idx = users.indexOf(selectedUser);
     if(idx !== -1) {
       await loadAllData();
@@ -1362,6 +1363,8 @@ function selectUser(idx) {
   document.getElementById('user-select').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   document.getElementById('sidebar-uname').textContent = currentUser;
+  const adminBtn = document.getElementById('btn-user-settings');
+  if(adminBtn) adminBtn.style.display = isAdmin ? 'inline-flex' : 'none';
   document.getElementById('sidebar-av').textContent = getInitials(currentUser);
   document.getElementById('today-lbl').textContent = now.toLocaleDateString('tr-TR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   // Eski auto event'leri temizle (artık getAllDates'ten okunuyor)
@@ -1385,12 +1388,19 @@ function selectUser(idx) {
 
 function switchUser() {
   document.getElementById('app').style.display = 'none';
-  document.getElementById('user-select').style.display = 'flex';
+  document.getElementById('password-screen').style.display = 'flex';
+  document.getElementById('user-select').style.display = 'none';
   currentUser = null;
+  isAdmin = false;
   initUserSelect();
+  setTimeout(() => document.getElementById('password-input')?.focus(), 100);
 }
 
 function openUserSettings() {
+  if(!isAdmin) {
+    showToast('🔒','Yetkisiz','Bu bölüme sadece yönetici erişebilir.');
+    return;
+  }
   renderUsersList();
   openMod('users');
 }
