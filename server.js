@@ -227,6 +227,11 @@ const server = http.createServer(async(req,res)=>{
       }
     }
 
-        res.writeHead(404);res.end('API not found');
+    res.writeHead(404);res.end('API not found');
     return;
   }
+});
+
+initDB().then(()=>{
+  server.listen(PORT,'0.0.0.0',()=>console.log(`Maxima: http://localhost:${PORT}`));
+});
