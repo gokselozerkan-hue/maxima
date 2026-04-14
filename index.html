@@ -440,7 +440,7 @@ textarea.fc{resize:vertical;min-height:70px;}
   <div class="us-sub">Kullanıcınızı seçin</div>
   <div class="us-grid" id="us-grid"></div>
   <div style="margin-top:16px;">
-    <button class="btn btn-s btn-sm" id="btn-user-settings" onclick="openUserSettings()" style="display:none;">⚙️ Kullanıcıları Düzenle</button>
+    <button class="btn btn-s btn-sm" id="btn-user-settings" onclick="openUserSettings()">⚙️ Kullanıcıları Düzenle</button>
   </div>
 </div>
 
@@ -1365,6 +1365,7 @@ function selectUser(idx) {
   document.getElementById('sidebar-uname').textContent = currentUser;
   const adminBtn = document.getElementById('btn-user-settings');
   if(adminBtn) adminBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+  if(!isAdmin && adminBtn) adminBtn.title = '';
   document.getElementById('sidebar-av').textContent = getInitials(currentUser);
   document.getElementById('today-lbl').textContent = now.toLocaleDateString('tr-TR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   // Eski auto event'leri temizle (artık getAllDates'ten okunuyor)
