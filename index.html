@@ -440,7 +440,6 @@ textarea.fc{resize:vertical;min-height:70px;}
   <div class="us-sub">Kullanıcınızı seçin</div>
   <div class="us-grid" id="us-grid"></div>
   <div style="margin-top:16px;">
-    <button class="btn btn-s btn-sm" id="btn-user-settings" onclick="openUserSettings()">⚙️ Kullanıcıları Düzenle</button>
   </div>
 </div>
 
@@ -495,6 +494,7 @@ textarea.fc{resize:vertical;min-height:70px;}
         <button class="theme-btn" style="flex:1;" onclick="document.getElementById('import-file').click()">📂 Yükle</button>
       </div>
       <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importData(this)">
+      <button class="theme-btn" id="btn-user-settings" onclick="openUserSettings()" style="display:none;">⚙️ Kullanıcıları Düzenle</button>
       <button class="theme-btn" onclick="toggleTheme()" id="theme-btn">☀️ Açık Tema</button>
     </div>
   </div>
