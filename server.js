@@ -170,135 +170,63 @@ const server = http.createServer(async(req,res)=>{
     if(pathname === '/api/export-excel' && method === 'POST') {
       const body = await parseBody(req);
       const casesData = body.cases || [];
-      
       try {
-        const { execSync } = require('child_process');
-        const os = require('os');
-        const tmpFile = path.join(os.tmpdir(), 'maxima_export_' + Date.now() + '.xlsx');
-        
-        // Python scripti ile xlsx oluştur
-        const script = `
-import sys, json
-from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-from openpyxl.utils import get_column_letter
-
-cases = json.loads(sys.argv[1])
-output = sys.argv[2]
-
-status_lbl = {
-  'arabulucu':'Arabulucuya Başvurulacak','davaacilacak':'Dava Açılacak',
-  'active':'İlk Derece','bam':'BAM','infaz':'İnfaz','urgent':'Acil','closed':'Kapalı'
-}
-
-def fmt_date(d):
-  if not d or len(d) < 10: return ''
-  try: return d[8:10]+'.'+d[5:7]+'.'+d[0:4]
-  except: return d
-
-wb = Workbook()
-ws = wb.active
-ws.title = 'Dava Raporu'
-
-headers = [
-  'BÜRO NO','DURUMU','MÜVEKKİL ADI SOYADI','MÜVEKKİL TELEFONU',
-  'KARŞI TARAF','DAVA TÜRÜ','MAHKEME ADI','ESAS NO',
-  'ARABULUCULUĞA BAŞVURU TARİHİ','DAVA AÇILACAK TARİH',
-  'ZAMANAŞIMI TARİHİ','GENEL NOT','KEŞİF/YERİNDE İNCELEME TARİHİ',
-  'ISLAH SON GÜN','İSTİNAF SON GÜN','İCRA DAİRESİ','İCRA ESAS NO','İCRA NOTLARI'
-]
-
-col_widths = [13,18,14,13,13,13,12,10,17,13,13,20,15,13,13,13,13,20]
-
-header_font = Font(bold=True, color='FFFFFF', size=11, name='Calibri')
-header_fill = PatternFill('solid', fgColor='757171')
-header_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
-thin = Side(style='thin', color='000000')
-header_border = Border(left=thin, right=thin, top=thin, bottom=thin)
-
-data_font = Font(size=11, name='Calibri')
-data_align = Alignment(horizontal='left', vertical='center', wrap_text=True)
-thin_gray = Side(style='thin', color='D3D3D3')
-data_border = Border(left=thin_gray, right=thin_gray, top=thin_gray, bottom=thin_gray)
-
-ws.row_dimensions[1].height = 44
-
-for i, h in enumerate(headers, 1):
-  cell = ws.cell(row=1, column=i, value=h)
-  cell.font = header_font
-  cell.fill = header_fill
-  cell.alignment = header_align
-  cell.border = header_border
-  ws.column_dimensions[get_column_letter(i)].width = col_widths[i-1]
-
-for c in cases:
-  row = [
-    c.get('buro',''),
-    status_lbl.get(c.get('status',''), c.get('status','')),
-    c.get('muv',''),
-    c.get('tel',''),
-    c.get('karsitaraf',''),
-    c.get('tur',''),
-    c.get('mahkeme',''),
-    c.get('esas',''),
-    fmt_date(c.get('arabulucu','')),
-    fmt_date(c.get('davaAc','')),
-    fmt_date(c.get('zamanasimi','')),
-    c.get('not',''),
-    fmt_date(c.get('kesifTarih','')),
-    fmt_date(c.get('islahTarih','')),
-    fmt_date(c.get('istinafTarih','')),
-    c.get('icraDaire',''),
-    c.get('icraEsas',''),
-    c.get('icraNot','')
-  ]
-  row_idx = ws.max_row + 1
-  ws.row_dimensions[row_idx].height = 20
-  for i, val in enumerate(row, 1):
-    cell = ws.cell(row=row_idx, column=i, value=val)
-    cell.font = data_font
-    cell.alignment = data_align
-    cell.border = data_border
-
-wb.save(output)
-print('OK')
-`;
-        
-        const tmpScript = path.join(os.tmpdir(), 'make_excel.py');
-        fs.writeFileSync(tmpScript, script);
-        
-        const casesJson = JSON.stringify(casesData).replace(/'/g, "\'");
-        execSync(`python3 "${tmpScript}" '${casesJson}' "${tmpFile}"`, { timeout: 30000 });
-        
-        const xlsxData = fs.readFileSync(tmpFile);
+        const XLSX = require('xlsx');
+        const statusLbl = {
+          arabulucu:'Arabulucuya Başvurulacak', davaacilacak:'Dava Açılacak',
+          active:'İlk Derece', bam:'BAM', infaz:'İnfaz', urgent:'Acil', closed:'Kapalı'
+        };
+        const fmtDate = d => {
+          if(!d || d.length < 10) return '';
+          return d.slice(8,10)+'.'+d.slice(5,7)+'.'+d.slice(0,4);
+        };
+        const headers = [
+          'BÜRO NO','DURUMU','MÜVEKKİL ADI SOYADI','MÜVEKKİL TELEFONU',
+          'KARŞI TARAF','DAVA TÜRÜ','MAHKEME ADI','ESAS NO',
+          'ARABULUCULUĞA BAŞVURU TARİHİ','DAVA AÇILACAK TARİH',
+          'ZAMANAŞIMI TARİHİ','GENEL NOT','KEŞİF/YERİNDE İNCELEME TARİHİ',
+          'ISLAH SON GÜN','İSTİNAF SON GÜN','İCRA DAİRESİ','İCRA ESAS NO','İCRA NOTLARI'
+        ];
+        const rows = casesData.map(c => [
+          c.buro||'', statusLbl[c.status]||c.status||'', c.muv||'', c.tel||'',
+          c.karsitaraf||'', c.tur||'', c.mahkeme||'', c.esas||'',
+          fmtDate(c.arabulucu), fmtDate(c.davaAc), fmtDate(c.zamanasimi),
+          c.not||'', fmtDate(c.kesifTarih), fmtDate(c.islahTarih),
+          fmtDate(c.istinafTarih), c.icraDaire||'', c.icraEsas||'', c.icraNot||''
+        ]);
+        const wb = XLSX.utils.book_new();
+        const wsData = [headers, ...rows];
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        // Sütun genişlikleri
+        ws['!cols'] = [13,18,14,13,13,13,12,10,17,13,13,20,15,13,13,13,13,20].map(w=>({wch:w}));
+        // Başlık stili
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        for(let C = range.s.c; C <= range.e.c; C++) {
+          const addr = XLSX.utils.encode_cell({r:0, c:C});
+          if(!ws[addr]) ws[addr] = {v:'',t:'s'};
+          ws[addr].s = {
+            font: {bold:true, color:{rgb:'FFFFFF'}, sz:11, name:'Calibri'},
+            fill: {patternType:'solid', fgColor:{rgb:'757171'}},
+            alignment: {horizontal:'center', vertical:'center', wrapText:true},
+            border: {top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}}
+          };
+        }
+        XLSX.utils.book_append_sheet(wb, ws, 'Dava Raporu');
+        const buf = XLSX.write(wb, {type:'buffer', bookType:'xlsx', cellStyles:true});
         const today = new Date().toLocaleDateString('tr-TR').replace(/\./g,'-');
-        
         res.writeHead(200, {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           'Content-Disposition': `attachment; filename="Maxima_Dava_Raporu_${today}.xlsx"`,
-          'Content-Length': xlsxData.length
+          'Content-Length': buf.length
         });
-        res.end(xlsxData);
-        
-        // Temp dosyaları temizle
-        try { fs.unlinkSync(tmpFile); fs.unlinkSync(tmpScript); } catch(e) {}
-        return;
+        return res.end(buf);
       } catch(err) {
-        console.error('Excel export error:', err.message);
-        res.writeHead(500); res.end('Excel oluşturulamadı: ' + err.message);
+        console.error('Excel error:', err.message);
+        res.writeHead(500); res.end('Excel hatası: ' + err.message);
         return;
       }
     }
 
-    res.writeHead(404);res.end('API not found');
+        res.writeHead(404);res.end('API not found');
     return;
   }
-
-  const fp=path.join(__dirname,pathname);
-  if(fs.existsSync(fp)&&fs.statSync(fp).isFile()) return serveFile(res,fp);
-  serveFile(res,path.join(__dirname,'index.html'));
-});
-
-initDB().then(()=>{
-  server.listen(PORT,'0.0.0.0',()=>console.log(`Maxima: http://localhost:${PORT}`));
-});
