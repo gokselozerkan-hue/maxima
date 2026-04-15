@@ -1674,8 +1674,20 @@ function renderCasesTable() {
   const tb = document.getElementById('cases-tbody');
   let list = [...cases];
   if(caseFilter!=='all') list = list.filter(c=>c.status===caseFilter);
-  if(caseSearch) list = list.filter(c=>(c.buro+c.muv+c.tel+c.mahkeme+c.konu+c.karsitaraf).toLowerCase().includes(caseSearch.toLowerCase()));
-  list.sort((a,b)=>(a.buro||'').localeCompare(b.buro||''));
+  if(caseSearch) {
+    const normalize = s => (s||'').toLocaleLowerCase('tr-TR')
+      .replace(/ı/g,'i').replace(/İ/g,'i').replace(/ğ/g,'g').replace(/Ğ/g,'g')
+      .replace(/ş/g,'s').replace(/Ş/g,'s').replace(/ç/g,'c').replace(/Ç/g,'c')
+      .replace(/ö/g,'o').replace(/Ö/g,'o').replace(/ü/g,'u').replace(/Ü/g,'u');
+    const q = normalize(caseSearch);
+    list = list.filter(c => normalize(c.buro+c.muv+c.tel+c.mahkeme+(c.konu||'')+(c.guncelDurum||'')+c.karsitaraf).includes(q));
+  }
+  list.sort((a,b)=>{
+    const na = parseInt((a.buro||'').replace(/\D/g,''))||0;
+    const nb = parseInt((b.buro||'').replace(/\D/g,''))||0;
+    if(na !== nb) return na - nb;
+    return (a.buro||'').localeCompare(b.buro||'');
+  });
   if(!list.length){ tb.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--txt3)">Sonuç bulunamadı</td></tr>'; return; }
   tb.innerHTML = list.map(c=>{
     const nextDate = getNextDate(c);
@@ -1732,6 +1744,14 @@ function openNewCase() {
   document.getElementById('case-modal-title').textContent = 'Yeni Dava Dosyası';
   document.getElementById('case-del-btn').style.display = 'none';
   resetCaseForm();
+  // Son büro numarasını bul ve +1 ekle
+  if(cases.length) {
+    const maxBuro = Math.max(...cases.map(c => parseInt((c.buro||'0').replace(/\D/g,''))||0));
+    if(maxBuro > 0) {
+      const el = document.getElementById('c-buro');
+      if(el) el.value = String(maxBuro + 1);
+    }
+  }
   openMod('case');
 }
 
