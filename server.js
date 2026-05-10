@@ -100,8 +100,8 @@ const server = http.createServer(async(req,res)=>{
   if(pathname==='/'||pathname==='/index.html')
     return serveFile(res,path.join(__dirname,'index.html'));
 
-  // PWA statik dosyalar
-  const staticFiles = ['/manifest.json','/sw.js','/icon-192.png','/icon-512.png'];
+  // PWA + patch statik dosyalar
+  const staticFiles = ['/manifest.json','/sw.js','/icon-192.png','/icon-512.png','/patch.js'];
   if(staticFiles.includes(pathname))
     return serveFile(res,path.join(__dirname,pathname.slice(1)));
 
@@ -160,7 +160,6 @@ const server = http.createServer(async(req,res)=>{
       }
       if(method==='DELETE'&&id) {
         let data=await readData(resource);
-        const item=data.find(x=>x.id===id);
         data=data.filter(x=>x.id!==id);
         if(resource==='cases'){
           let events=await readData('events');
@@ -171,65 +170,39 @@ const server = http.createServer(async(req,res)=>{
         return json(res,{ok:true});
       }
     }
-    // Excel export
-    if(pathname === '/api/export-excel' && method === 'POST') {
-      const body = await parseBody(req);
-      const casesData = body.cases || [];
+
+    if(pathname==='/api/export-excel'&&method==='POST') {
+      const body=await parseBody(req);
+      const casesData=body.cases||[];
       try {
-        const XLSX = require('xlsx');
-        const statusLbl = {
-          arabulucu:'Arabulucuya Başvurulacak', davaacilacak:'Dava Açılacak',
-          active:'İlk Derece', bam:'BAM', infaz:'İnfaz', urgent:'Acil', closed:'Kapalı'
-        };
-        const fmtDate = d => {
-          if(!d || d.length < 10) return '';
-          return d.slice(8,10)+'.'+d.slice(5,7)+'.'+d.slice(0,4);
-        };
-        const headers = [
-          'BÜRO NO','DURUMU','MÜVEKKİL ADI SOYADI','MÜVEKKİL TELEFONU',
-          'KARŞI TARAF','DAVA TÜRÜ','MAHKEME ADI','ESAS NO',
-          'ARABULUCULUĞA BAŞVURU TARİHİ','DAVA AÇILACAK TARİH',
-          'ZAMANAŞIMI TARİHİ','GENEL NOT','KEŞİF/YERİNDE İNCELEME TARİHİ',
-          'ISLAH SON GÜN','İSTİNAF SON GÜN','İCRA DAİRESİ','İCRA ESAS NO','İCRA NOTLARI'
-        ];
-        const rows = casesData.map(c => [
-          c.buro||'', statusLbl[c.status]||c.status||'', c.muv||'', c.tel||'',
-          c.karsitaraf||'', c.tur||'', c.mahkeme||'', c.esas||'',
-          fmtDate(c.arabulucu), fmtDate(c.davaAc), fmtDate(c.zamanasimi),
-          c.not||'', fmtDate(c.kesifTarih), fmtDate(c.islahTarih),
-          fmtDate(c.istinafTarih), c.icraDaire||'', c.icraEsas||'', c.icraNot||''
+        const XLSX=require('xlsx');
+        const statusLbl={arabulucu:'Arabulucuya Başvurulacak',davaacilacak:'Dava Açılacak',active:'İlk Derece',bam:'BAM',infaz:'İnfaz',urgent:'Acil',closed:'Kapalı'};
+        const fmtDate=d=>{if(!d||d.length<10)return '';return d.slice(8,10)+'.'+d.slice(5,7)+'.'+d.slice(0,4);};
+        const headers=['BÜRO NO','DURUMU','MÜVEKKİL ADI SOYADI','MÜVEKKİL TELEFONU','KARŞI TARAF','DAVA TÜRÜ','MAHKEME ADI','ESAS NO','ARABULUCULUĞA BAŞVURU TARİHİ','DAVA AÇILACAK TARİH','ZAMANAŞIMI TARİHİ','GENEL NOT','KEŞİF/YERİNDE İNCELEME TARİHİ','ISLAH SON GÜN','İSTİNAF SON GÜN','İCRA DAİRESİ','İCRA ESAS NO','İCRA NOTLARI'];
+        const rows=casesData.map(c=>[
+          c.buro||'',statusLbl[c.status]||c.status||'',c.muv||'',c.tel||'',
+          c.karsitaraf||'',c.tur||'',c.mahkeme||'',c.esas||'',
+          fmtDate(c.arabulucu),fmtDate(c.davaAc),fmtDate(c.zamanasimi),
+          c.not||'',fmtDate(c.kesifTarih),fmtDate(c.islahTarih),fmtDate(c.istinafTarih),
+          (c.icraList&&c.icraList[0]?c.icraList[0].daire:(c.icraDaire||'')),
+          (c.icraList&&c.icraList[0]?c.icraList[0].esas:(c.icraEsas||'')),
+          (c.icraList&&c.icraList[0]?c.icraList[0].not:(c.icraNot||''))
         ]);
-        const wb = XLSX.utils.book_new();
-        const wsData = [headers, ...rows];
-        const ws = XLSX.utils.aoa_to_sheet(wsData);
-        // Sütun genişlikleri
-        ws['!cols'] = [13,18,14,13,13,13,12,10,17,13,13,20,15,13,13,13,13,20].map(w=>({wch:w}));
-        // Başlık stili
-        const range = XLSX.utils.decode_range(ws['!ref']);
-        for(let C = range.s.c; C <= range.e.c; C++) {
-          const addr = XLSX.utils.encode_cell({r:0, c:C});
-          if(!ws[addr]) ws[addr] = {v:'',t:'s'};
-          ws[addr].s = {
-            font: {bold:true, color:{rgb:'FFFFFF'}, sz:11, name:'Calibri'},
-            fill: {patternType:'solid', fgColor:{rgb:'757171'}},
-            alignment: {horizontal:'center', vertical:'center', wrapText:true},
-            border: {top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}}
-          };
+        const wb=XLSX.utils.book_new();
+        const ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
+        ws['!cols']=[13,18,14,13,13,13,12,10,17,13,13,20,15,13,13,13,13,20].map(w=>({wch:w}));
+        const range=XLSX.utils.decode_range(ws['!ref']);
+        for(let C=range.s.c;C<=range.e.c;C++){
+          const addr=XLSX.utils.encode_cell({r:0,c:C});
+          if(!ws[addr])ws[addr]={v:'',t:'s'};
+          ws[addr].s={font:{bold:true,color:{rgb:'FFFFFF'},sz:11,name:'Calibri'},fill:{patternType:'solid',fgColor:{rgb:'757171'}},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:{top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'}}};
         }
-        XLSX.utils.book_append_sheet(wb, ws, 'Dava Raporu');
-        const buf = XLSX.write(wb, {type:'buffer', bookType:'xlsx', cellStyles:true});
-        const today = new Date().toLocaleDateString('tr-TR').replace(/\./g,'-');
-        res.writeHead(200, {
-          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          'Content-Disposition': `attachment; filename="Maxima_Dava_Raporu_${today}.xlsx"`,
-          'Content-Length': buf.length
-        });
+        XLSX.utils.book_append_sheet(wb,ws,'Dava Raporu');
+        const buf=XLSX.write(wb,{type:'buffer',bookType:'xlsx',cellStyles:true});
+        const today=new Date().toLocaleDateString('tr-TR').replace(/\./g,'-');
+        res.writeHead(200,{'Content-Type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','Content-Disposition':`attachment; filename="Maxima_Dava_Raporu_${today}.xlsx"`,'Content-Length':buf.length});
         return res.end(buf);
-      } catch(err) {
-        console.error('Excel error:', err.message);
-        res.writeHead(500); res.end('Excel hatası: ' + err.message);
-        return;
-      }
+      } catch(err){console.error('Excel error:',err.message);res.writeHead(500);res.end('Excel hatası: '+err.message);return;}
     }
 
     res.writeHead(404);res.end('API not found');
