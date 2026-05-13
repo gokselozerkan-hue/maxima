@@ -132,11 +132,30 @@ openEditCase = function(id) {
   tmpGuncelDurumlar = [];
   tmpIcraList = [];
 
-  // Orijinal fonksiyonu çağır (bu tmpDurusmalar vb. doğru doldurur)
+  // Orijinal fonksiyonu çağır (bu tmpDurusmalar vb. doldurur)
   _origOpenEditCase(id);
 
   const c = cases.find(x=>x.id===id);
   if(!c) return;
+
+  // KRİTİK: Tüm dizi alanlarını derin kopya ile yeniden ata
+  // (referans kopyası olmadan, orijinal veriyi korumak için)
+  if(typeof tmpBilirkisi !== 'undefined') {
+    tmpBilirkisi = JSON.parse(JSON.stringify(c.bilirkisiList||[]));
+    if(typeof renderBilList === 'function') renderBilList();
+  }
+  if(typeof tmpDurusmalar !== 'undefined') {
+    tmpDurusmalar = JSON.parse(JSON.stringify(c.durusmalar||[]));
+    if(typeof renderDurusmaList === 'function') renderDurusmaList();
+  }
+  if(typeof tmpMuzekkere !== 'undefined') {
+    tmpMuzekkere = JSON.parse(JSON.stringify(c.muzekkere||[]));
+    if(typeof renderMuzList === 'function') renderMuzList();
+  }
+  if(typeof tmpGenelNotlar !== 'undefined') {
+    tmpGenelNotlar = JSON.parse(JSON.stringify(c.genelNotlar||[]));
+    if(typeof renderGenelNotList === 'function') renderGenelNotList();
+  }
 
   // Güncel durum listesi
   tmpGuncelDurumlar = JSON.parse(JSON.stringify(c.guncelDurumlar||[]));
