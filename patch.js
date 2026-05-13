@@ -104,6 +104,68 @@ function sortCases(field) {
   renderCasesTable();
 }
 
+
+// KRİTİK DÜZELTME: fillCaseForm override
+// Orijinal fillCaseForm referans kopyası alıyor, bu tüm davaları etkiliyor
+// Bu override derin kopya (JSON.parse/stringify) kullanarak sorunu çözüyor
+const _origFillCaseForm = fillCaseForm;
+fillCaseForm = function(c) {
+  // Önce tüm tmp'leri temizle
+  if(typeof tmpDurusmalar !== 'undefined') tmpDurusmalar = [];
+  if(typeof tmpMuzekkere !== 'undefined') tmpMuzekkere = [];
+  if(typeof tmpGenelNotlar !== 'undefined') tmpGenelNotlar = [];
+  if(typeof tmpBilirkisi !== 'undefined') tmpBilirkisi = [];
+  tmpGuncelDurumlar = [];
+  tmpIcraList = [];
+
+  // Orijinal fonksiyonu çağır
+  _origFillCaseForm(c);
+
+  // KRİTİK: Orijinal fillCaseForm referans kopyası alıyor
+  // Şimdi derin kopya ile üzerine yaz
+  if(typeof tmpBilirkisi !== 'undefined') {
+    tmpBilirkisi = JSON.parse(JSON.stringify(c.bilirkisiList||[]));
+    if(typeof renderBilList === 'function') renderBilList();
+  }
+  if(typeof tmpDurusmalar !== 'undefined') {
+    tmpDurusmalar = JSON.parse(JSON.stringify(c.durusmalar||[]));
+    if(typeof renderDurusmaList === 'function') renderDurusmaList();
+  }
+  if(typeof tmpMuzekkere !== 'undefined') {
+    tmpMuzekkere = JSON.parse(JSON.stringify(c.muzekkere||[]));
+    if(typeof renderMuzList === 'function') renderMuzList();
+  }
+  if(typeof tmpGenelNotlar !== 'undefined') {
+    tmpGenelNotlar = JSON.parse(JSON.stringify(c.genelNotlar||[]));
+    if(typeof renderGenelNotList === 'function') renderGenelNotList();
+  }
+
+  // Güncel durum listesi
+  tmpGuncelDurumlar = JSON.parse(JSON.stringify(c.guncelDurumlar||[]));
+  if(!tmpGuncelDurumlar.length && c.guncelDurum) {
+    tmpGuncelDurumlar = [{id:Date.now().toString(),tarih:'',metin:c.guncelDurum}];
+  }
+
+  // İcra listesi
+  if(c.icraList&&c.icraList.length) {
+    tmpIcraList = JSON.parse(JSON.stringify(c.icraList));
+  } else if(c.icraDaire||c.icraEsas) {
+    tmpIcraList = [{id:Date.now().toString(),yapildi:c.icraYapildi||false,daire:c.icraDaire||'',
+      esas:c.icraEsas||'',tebligTarih:c.icraTebligTarih||'',tebligYapildi:c.icraTebligYapildi||false,
+      teminatTarih:c.teminatTarih||'',teminatYapildi:c.teminatYapildi||false,
+      tahsil:c.icraTahsil||false,not:c.icraNot||''}];
+  } else {
+    tmpIcraList = [];
+  }
+
+  // Arabuluculuk checkboxları
+  const ab=document.getElementById('c-arabulucu-basvuruldu'); if(ab) ab.checked=!!c.arabulucuBasvuruldu;
+  const an=document.getElementById('c-arabulucu-anlasildi'); if(an) an.checked=!!c.arabulucuAnlasildi;
+
+  renderGuncelDurumList();
+  renderIcraList();
+};
+
 // 5. openNewCase override - TÜM tmp dizileri sıfırla
 const _origOpenNewCase = openNewCase;
 openNewCase = function() {
