@@ -104,9 +104,14 @@ function sortCases(field) {
   renderCasesTable();
 }
 
-// 5. openNewCase override - son büro + arabuluculuk + icra sıfırla
+// 5. openNewCase override - TÜM tmp dizileri sıfırla
 const _origOpenNewCase = openNewCase;
 openNewCase = function() {
+  // Tüm geçici dizileri temizle
+  if(typeof tmpDurusmalar !== 'undefined') tmpDurusmalar = [];
+  if(typeof tmpMuzekkere !== 'undefined') tmpMuzekkere = [];
+  if(typeof tmpGenelNotlar !== 'undefined') tmpGenelNotlar = [];
+  if(typeof tmpBilirkisi !== 'undefined') tmpBilirkisi = [];
   tmpGuncelDurumlar = [];
   tmpIcraList = [];
   _origOpenNewCase();
@@ -116,28 +121,51 @@ openNewCase = function() {
   });
 };
 
-// 6. openEditCase override - güncel durum + icra yükle
+// 6. openEditCase override - TÜM tmp dizileri doğru yükle
 const _origOpenEditCase = openEditCase;
 openEditCase = function(id) {
+  // Önce tüm tmp'leri temizle (önceki davadan kalıntı kalmasın)
+  if(typeof tmpDurusmalar !== 'undefined') tmpDurusmalar = [];
+  if(typeof tmpMuzekkere !== 'undefined') tmpMuzekkere = [];
+  if(typeof tmpGenelNotlar !== 'undefined') tmpGenelNotlar = [];
+  if(typeof tmpBilirkisi !== 'undefined') tmpBilirkisi = [];
+  tmpGuncelDurumlar = [];
+  tmpIcraList = [];
+
+  // Orijinal fonksiyonu çağır (bu tmpDurusmalar vb. doğru doldurur)
   _origOpenEditCase(id);
+
   const c = cases.find(x=>x.id===id);
   if(!c) return;
-  // Güncel durum
+
+  // Güncel durum listesi
   tmpGuncelDurumlar = JSON.parse(JSON.stringify(c.guncelDurumlar||[]));
   if(!tmpGuncelDurumlar.length && c.guncelDurum) {
     tmpGuncelDurumlar = [{id:Date.now().toString(),tarih:'',metin:c.guncelDurum}];
   }
+
   // İcra listesi
-  if(c.icraList&&c.icraList.length) {tmpIcraList=JSON.parse(JSON.stringify(c.icraList));}
-  else if(c.icraDaire||c.icraEsas) {
-    tmpIcraList=[{id:Date.now().toString(),yapildi:c.icraYapildi||false,daire:c.icraDaire||'',esas:c.icraEsas||'',
-      tebligTarih:c.icraTebligTarih||'',tebligYapildi:c.icraTebligYapildi||false,
+  if(c.icraList&&c.icraList.length) {
+    tmpIcraList = JSON.parse(JSON.stringify(c.icraList));
+  } else if(c.icraDaire||c.icraEsas) {
+    tmpIcraList = [{id:Date.now().toString(),yapildi:c.icraYapildi||false,daire:c.icraDaire||'',
+      esas:c.icraEsas||'',tebligTarih:c.icraTebligTarih||'',tebligYapildi:c.icraTebligYapildi||false,
       teminatTarih:c.teminatTarih||'',teminatYapildi:c.teminatYapildi||false,
       tahsil:c.icraTahsil||false,not:c.icraNot||''}];
-  } else {tmpIcraList=[];}
-  // Arabuluculuk
+  } else {
+    tmpIcraList = [];
+  }
+
+  // Bilirkişi listesi - orijinal fillCaseForm'dan gelmiyor olabilir
+  if(c.bilirkisiList&&c.bilirkisiList.length && typeof tmpBilirkisi !== 'undefined') {
+    tmpBilirkisi = JSON.parse(JSON.stringify(c.bilirkisiList));
+    if(typeof renderBilList === 'function') renderBilList();
+  }
+
+  // Arabuluculuk checkboxları
   const ab=document.getElementById('c-arabulucu-basvuruldu'); if(ab) ab.checked=!!c.arabulucuBasvuruldu;
   const an=document.getElementById('c-arabulucu-anlasildi'); if(an) an.checked=!!c.arabulucuAnlasildi;
+
   renderGuncelDurumList();
   renderIcraList();
 };
