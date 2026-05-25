@@ -1843,7 +1843,7 @@ function readCaseForm() {
     beyanTarih: g('c-beyan-tarih'), beyanYapildi:c('c-beyan-yapildi'),
     giderTarih:g('c-gider-tarih'), giderYapildi:c('c-gider-yapildi'),
     kesifTarih:g('c-kesif-tarih'), kesifYapildi:c('c-kesif-yapildi'),
-    bilirkisiList: tmpBilirkisi,
+    bilirkisiList: JSON.parse(JSON.stringify(tmpBilirkisi)),
     islahYapilacak:c('c-islah-yapilacak'), islahYapilmayacak:c('c-islah-yapilmayacak'), islahTarih: g('c-islah-tarih'),
     islahYapildi:c('c-islah-yapildi'), islahNot:g('c-islah-not'),
     gkTarih:g('c-gk-tarih'), gkYazildi:c('c-gk-yazildi'), gkTeblig:c('c-gk-teblig'),
