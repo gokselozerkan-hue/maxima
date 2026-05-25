@@ -1866,7 +1866,7 @@ function saveCase() {
   if(!data.buro || !data.muv){ showToast('⚠️','Eksik','Büro No ve Müvekkil adı zorunlu.'); return; }
   if(editingCaseId) {
     const old = cases.find(c=>c.id===editingCaseId);
-    cases = cases.map(c => c.id===editingCaseId ? { ...c, ...data, updatedAt: Date.now(), updatedBy: currentUser } : c);
+    cases = cases.map(c => c.id===editingCaseId ? JSON.parse(JSON.stringify({ ...c, ...data, updatedAt: Date.now(), updatedBy: currentUser })) : c);
     addLog('Dava Güncellendi', `Büro: ${data.buro} — ${data.muv}`);
     // sync events
     syncCaseEvents(editingCaseId, data);
