@@ -1871,7 +1871,7 @@ function saveCase() {
     // sync events
     syncCaseEvents(editingCaseId, data);
   } else {
-    const newCase = { ...data, id: Date.now().toString(), createdAt: Date.now(), createdBy: currentUser };
+    const newCase = JSON.parse(JSON.stringify({ ...data, id: Date.now().toString(), createdAt: Date.now(), createdBy: currentUser }));
     cases.push(newCase);
     addLog('Yeni Dava Eklendi', `Büro: ${data.buro} — ${data.muv}`);
     syncCaseEvents(newCase.id, data);
