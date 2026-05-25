@@ -1855,7 +1855,7 @@ function readCaseForm() {
     icraTebligTarih:g('c-icra-teblig-tarih'), icraTebligYapildi:c('c-icra-teblig-yapildi'),
     teminatTarih:g('c-teminat-tarih'), teminatYapildi:c('c-teminat-yapildi'),
     icraTahsil:c('c-icra-tahsil'), icraNot:g('c-icra-not'), not:g('c-not'),
-    durusmalar: tmpDurusmalar, muzekkere: tmpMuzekkere, genelNotlar: tmpGenelNotlar, bilirkisiList: tmpBilirkisi
+    durusmalar: JSON.parse(JSON.stringify(tmpDurusmalar)), muzekkere: JSON.parse(JSON.stringify(tmpMuzekkere)), genelNotlar: JSON.parse(JSON.stringify(tmpGenelNotlar)), bilirkisiList: JSON.parse(JSON.stringify(tmpBilirkisi))
   };
 }
 
