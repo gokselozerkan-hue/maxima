@@ -1,6 +1,5 @@
-
 // =============================================================
-// MAXIMA PATCH v2 - Tüm değişiklikleri uygular
+// MAXIMA PATCH v3 - fillCaseForm derin kopya düzeltmesi dahil
 // =============================================================
 
 // 1. Yeni global değişkenler
@@ -25,7 +24,7 @@ function renderGuncelDurumList() {
     <div style="background:var(--sur2);border:1px solid var(--brd);border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:8px;">
       <input type="date" class="fc" style="flex:1;max-width:150px;" value="${n.tarih||''}" onchange="tmpGuncelDurumlar[${i}].tarih=this.value">
       <textarea class="fc" style="flex:4;" rows="2" placeholder="Güncel durum notu..." onchange="tmpGuncelDurumlar[${i}].metin=this.value">${n.metin||''}</textarea>
-      <button style="background:var(--sur3);border:none;color:var(--txt2);width:24px;height:24px;border-radius:5px;cursor:pointer;" onclick="tmpGuncelDurumlar.splice(${i},1);renderGuncelDurumList()">🗑</button>
+      <button style="background:var(--sur3);border:none;color:var(--txt2);width:24px;height:24px;border-radius:5px;cursor:pointer;flex-shrink:0;" onclick="tmpGuncelDurumlar.splice(${i},1);renderGuncelDurumList()">🗑</button>
     </div>`).join('');
 }
 
@@ -104,10 +103,11 @@ function sortCases(field) {
   renderCasesTable();
 }
 
-
+// =====================================================================
 // KRİTİK DÜZELTME: fillCaseForm override
-// Orijinal fillCaseForm referans kopyası alıyor, bu tüm davaları etkiliyor
-// Bu override derin kopya (JSON.parse/stringify) kullanarak sorunu çözüyor
+// Orijinal fillCaseForm referans kopyası alıyor - bu tüm davaları etkiliyor
+// Bu override derin kopya kullanarak sorunu çözüyor
+// =====================================================================
 const _origFillCaseForm = fillCaseForm;
 fillCaseForm = function(c) {
   // Önce tüm tmp'leri temizle
@@ -121,8 +121,7 @@ fillCaseForm = function(c) {
   // Orijinal fonksiyonu çağır
   _origFillCaseForm(c);
 
-  // KRİTİK: Orijinal fillCaseForm referans kopyası alıyor
-  // Şimdi derin kopya ile üzerine yaz
+  // KRİTİK: Derin kopya ile üzerine yaz - referans kopyası sorununu önle
   if(typeof tmpBilirkisi !== 'undefined') {
     tmpBilirkisi = JSON.parse(JSON.stringify(c.bilirkisiList||[]));
     if(typeof renderBilList === 'function') renderBilList();
@@ -166,10 +165,9 @@ fillCaseForm = function(c) {
   renderIcraList();
 };
 
-// 5. openNewCase override - TÜM tmp dizileri sıfırla
+// 5. openNewCase override - tüm tmp'leri sıfırla
 const _origOpenNewCase = openNewCase;
 openNewCase = function() {
-  // Tüm geçici dizileri temizle
   if(typeof tmpDurusmalar !== 'undefined') tmpDurusmalar = [];
   if(typeof tmpMuzekkere !== 'undefined') tmpMuzekkere = [];
   if(typeof tmpGenelNotlar !== 'undefined') tmpGenelNotlar = [];
@@ -177,114 +175,33 @@ openNewCase = function() {
   tmpGuncelDurumlar = [];
   tmpIcraList = [];
   _origOpenNewCase();
-  // Arabuluculuk checkboxlarını sıfırla
   ['c-arabulucu-basvuruldu','c-arabulucu-anlasildi'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.checked=false;
   });
 };
 
-// 6. openEditCase override - TÜM tmp dizileri doğru yükle
-const _origOpenEditCase = openEditCase;
-openEditCase = function(id) {
-  // Önce tüm tmp'leri temizle (önceki davadan kalıntı kalmasın)
-  if(typeof tmpDurusmalar !== 'undefined') tmpDurusmalar = [];
-  if(typeof tmpMuzekkere !== 'undefined') tmpMuzekkere = [];
-  if(typeof tmpGenelNotlar !== 'undefined') tmpGenelNotlar = [];
-  if(typeof tmpBilirkisi !== 'undefined') tmpBilirkisi = [];
-  tmpGuncelDurumlar = [];
-  tmpIcraList = [];
-
-  // Orijinal fonksiyonu çağır (bu tmpDurusmalar vb. doldurur)
-  _origOpenEditCase(id);
-
-  const c = cases.find(x=>x.id===id);
-  if(!c) return;
-
-  // KRİTİK: Tüm dizi alanlarını derin kopya ile yeniden ata
-  // (referans kopyası olmadan, orijinal veriyi korumak için)
-  if(typeof tmpBilirkisi !== 'undefined') {
-    tmpBilirkisi = JSON.parse(JSON.stringify(c.bilirkisiList||[]));
-    if(typeof renderBilList === 'function') renderBilList();
-  }
-  if(typeof tmpDurusmalar !== 'undefined') {
-    tmpDurusmalar = JSON.parse(JSON.stringify(c.durusmalar||[]));
-    if(typeof renderDurusmaList === 'function') renderDurusmaList();
-  }
-  if(typeof tmpMuzekkere !== 'undefined') {
-    tmpMuzekkere = JSON.parse(JSON.stringify(c.muzekkere||[]));
-    if(typeof renderMuzList === 'function') renderMuzList();
-  }
-  if(typeof tmpGenelNotlar !== 'undefined') {
-    tmpGenelNotlar = JSON.parse(JSON.stringify(c.genelNotlar||[]));
-    if(typeof renderGenelNotList === 'function') renderGenelNotList();
-  }
-
-  // Güncel durum listesi
-  tmpGuncelDurumlar = JSON.parse(JSON.stringify(c.guncelDurumlar||[]));
-  if(!tmpGuncelDurumlar.length && c.guncelDurum) {
-    tmpGuncelDurumlar = [{id:Date.now().toString(),tarih:'',metin:c.guncelDurum}];
-  }
-
-  // İcra listesi
-  if(c.icraList&&c.icraList.length) {
-    tmpIcraList = JSON.parse(JSON.stringify(c.icraList));
-  } else if(c.icraDaire||c.icraEsas) {
-    tmpIcraList = [{id:Date.now().toString(),yapildi:c.icraYapildi||false,daire:c.icraDaire||'',
-      esas:c.icraEsas||'',tebligTarih:c.icraTebligTarih||'',tebligYapildi:c.icraTebligYapildi||false,
-      teminatTarih:c.teminatTarih||'',teminatYapildi:c.teminatYapildi||false,
-      tahsil:c.icraTahsil||false,not:c.icraNot||''}];
-  } else {
-    tmpIcraList = [];
-  }
-
-  // Bilirkişi listesi - orijinal fillCaseForm'dan gelmiyor olabilir
-  if(c.bilirkisiList&&c.bilirkisiList.length && typeof tmpBilirkisi !== 'undefined') {
-    tmpBilirkisi = JSON.parse(JSON.stringify(c.bilirkisiList));
-    if(typeof renderBilList === 'function') renderBilList();
-  }
-
-  // Arabuluculuk checkboxları
-  const ab=document.getElementById('c-arabulucu-basvuruldu'); if(ab) ab.checked=!!c.arabulucuBasvuruldu;
-  const an=document.getElementById('c-arabulucu-anlasildi'); if(an) an.checked=!!c.arabulucuAnlasildi;
-
-  renderGuncelDurumList();
-  renderIcraList();
-};
-
-// 7. saveCase override - yeni alanları kaydet
+// 6. saveCase override - yeni alanları kaydet
 const _origSaveCase = saveCase;
 saveCase = function() {
-  // Önce original saveCase'i çağır
-  // Ama önce yeni alanları form'a yansıt (gerekirse)
   _origSaveCase();
-  // Kaydedilen son davayı bul ve güncelle
   setTimeout(()=>{
-    if(cases.length) {
-      const last = editingCaseId ? cases.find(c=>c.id===editingCaseId) : cases[cases.length-1];
-      if(last) {
-        last.guncelDurumlar = tmpGuncelDurumlar;
-        last.icraList = tmpIcraList;
-        last.arabulucuBasvuruldu = document.getElementById('c-arabulucu-basvuruldu')?.checked||false;
-        last.arabulucuAnlasildi = document.getElementById('c-arabulucu-anlasildi')?.checked||false;
-        // icraDaire/icraEsas için geriye dönük uyumluluk
-        if(tmpIcraList.length) {
-          last.icraDaire = tmpIcraList[0].daire;
-          last.icraEsas = tmpIcraList[0].esas;
-        }
-        save();
+    const targetId = editingCaseId;
+    const last = targetId ? cases.find(c=>c.id===targetId) : cases[cases.length-1];
+    if(last) {
+      last.guncelDurumlar = JSON.parse(JSON.stringify(tmpGuncelDurumlar));
+      last.icraList = JSON.parse(JSON.stringify(tmpIcraList));
+      last.arabulucuBasvuruldu = document.getElementById('c-arabulucu-basvuruldu')?.checked||false;
+      last.arabulucuAnlasildi = document.getElementById('c-arabulucu-anlasildi')?.checked||false;
+      if(tmpIcraList.length) {
+        last.icraDaire = tmpIcraList[0].daire;
+        last.icraEsas = tmpIcraList[0].esas;
       }
+      save();
     }
-  }, 100);
+  }, 150);
 };
 
-// 8. searchCases override - esas no dahil et
-const _origSearchCases = searchCases;
-searchCases = function(v) {
-  caseSearch = v;
-  renderCasesTable();
-};
-
-// 9. renderCasesTable override - esas no araması + sıralama
+// 7. renderCasesTable override - esas no araması + sıralama
 const _origRenderCasesTable = renderCasesTable;
 renderCasesTable = function() {
   const tb = document.getElementById('cases-tbody');
@@ -301,7 +218,6 @@ renderCasesTable = function() {
       (c.guncelDurumlar||[]).map(g=>g.metin||'').join(' ')
     ).includes(q));
   }
-  // Sıralama
   list.sort((a,b)=>{
     if(caseSortField==='muv') return(a.muv||'').localeCompare(b.muv||'','tr')*caseSortDir;
     if(caseSortField==='nextDate'){
@@ -337,7 +253,7 @@ renderCasesTable = function() {
   }).join('');
 };
 
-// 10. checkPassword override - boş şifre engeli
+// 8. checkPassword override - boş şifre engeli
 const _origCheckPassword = checkPassword;
 checkPassword = async function() {
   const pw = document.getElementById('password-input')?.value;
@@ -349,7 +265,7 @@ checkPassword = async function() {
   return _origCheckPassword();
 };
 
-// 11. getAllDates override - delil/tanık/istinaf ekle
+// 9. getAllDates override - delil/tanık/istinaf ekle
 const _origGetAllDates = getAllDates;
 getAllDates = function() {
   const result = _origGetAllDates();
@@ -364,7 +280,7 @@ getAllDates = function() {
   return result;
 };
 
-// 12. DOM hazır olunca form değişikliklerini uygula
+// 10. DOM hazır olunca form değişikliklerini uygula
 document.addEventListener('DOMContentLoaded', function() {
   // Dava türlerine İtirazın İptali ekle
   const turSel = document.getElementById('c-tur');
@@ -377,114 +293,99 @@ document.addEventListener('DOMContentLoaded', function() {
       icraOpt.insertAdjacentElement('afterend', newOpt);
     }
   }
-  
-  // Tablo başlıklarına sort ekleme için MutationObserver kullan
-  const addSortHeaders = () => {
-    const thead = document.querySelector('#page-cases thead tr');
-    if(!thead) return;
-    const headers = thead.querySelectorAll('th');
-    if(headers[0] && !headers[0].id) {
-      headers[0].style.cursor='pointer';
-      headers[0].innerHTML='Büro No <span id="sort-buro">↑</span>';
-      headers[0].onclick=()=>sortCases('buro');
-      if(headers[2]) {
-        headers[2].style.cursor='pointer';
-        headers[2].innerHTML='Müvekkil <span id="sort-muv">↕</span>';
-        headers[2].onclick=()=>sortCases('muv');
-      }
-      if(headers[8]) {
-        headers[8].style.cursor='pointer';
-        headers[8].innerHTML='Sonraki Tarih <span id="sort-nextDate">↕</span>';
-        headers[8].onclick=()=>sortCases('nextDate');
-      }
-    }
-  };
-  
-  // Modal açıldığında arabuluculuk checkboxlarını ekle
-  const addArabuluculukCheckboxes = () => {
-    const arabulucuDiv = document.querySelector('#c-arabulucu')?.closest('.fg');
-    if(!arabulucuDiv) return;
-    const section = arabulucuDiv.closest('.frow');
-    if(!section) return;
-    const divTitle = section.previousElementSibling;
-    if(!divTitle || divTitle.className !== 'div-title') return;
-    if(document.getElementById('c-arabulucu-basvuruldu')) return; // zaten var
-    
-    const checkRow = document.createElement('div');
-    checkRow.className = 'frow frow-2';
-    checkRow.style.marginBottom = '8px';
-    checkRow.innerHTML = `
-      <div class="fg" style="display:flex;align-items:center;">
-        <label class="fc-check"><input type="checkbox" id="c-arabulucu-basvuruldu"><span>Arabuluculuğa başvuruldu ✓</span></label>
-      </div>
-      <div class="fg" style="display:flex;align-items:center;">
-        <label class="fc-check"><input type="checkbox" id="c-arabulucu-anlasildi"><span>Arabuluculukta anlaşıldı ✓</span></label>
-      </div>`;
-    section.insertAdjacentElement('beforebegin', checkRow);
-  };
-  
-  // İcra form'unu güncel durum ile değiştir
-  const transformIcraAndGuncelDurum = () => {
-    // Güncel Durum textarea → liste
-    const guncelDurumTextarea = document.getElementById('c-guncel-durum');
-    if(guncelDurumTextarea) {
-      const frow = guncelDurumTextarea.closest('.frow');
-      const divTitle = frow?.previousElementSibling;
-      if(frow) {
-        const listDiv = document.createElement('div');
-        listDiv.id = 'guncel-durum-list';
-        listDiv.style.marginBottom = '8px';
-        const addBtn = document.createElement('button');
-        addBtn.className = 'btn btn-s btn-sm';
-        addBtn.textContent = '+ Güncel Durum Notu Ekle';
-        addBtn.onclick = addGuncelDurum;
-        frow.replaceWith(listDiv, addBtn);
-        renderGuncelDurumList();
-      }
-    }
-    
-    // İcra bölümü
-    const icraDaire = document.getElementById('c-icra-daire');
-    if(icraDaire) {
-      // İcra bölümünü bul
-      const icraDaireRow = icraDaire.closest('.frow');
-      if(!icraDaireRow) return;
-      // Üst div-title
-      let curr = icraDaireRow;
-      let allIcraElements = [];
-      while(curr && (!curr.className || !curr.className.includes('div-title'))) {
-        allIcraElements.push(curr);
-        curr = curr.nextElementSibling;
-      }
-      // İcra elementlerini bul ve yerine liste koy
-      const icraDiv = document.createElement('div');
-      icraDiv.id = 'icra-list';
-      icraDiv.style.marginBottom = '8px';
-      const addIcraBtn = document.createElement('button');
-      addIcraBtn.className = 'btn btn-s btn-sm';
-      addIcraBtn.textContent = '+ İcra Takibi Ekle';
-      addIcraBtn.onclick = addIcra;
-      icraDaireRow.insertAdjacentElement('beforebegin', icraDiv);
-      icraDaireRow.insertAdjacentElement('beforebegin', addIcraBtn);
-      // Eski elementleri gizle
-      allIcraElements.forEach(el => { if(el.id !== 'icra-list') el.style.display='none'; });
-      renderIcraList();
-    }
-  };
-  
+
+  // Tablo başlıklarına sort ekle
   setTimeout(()=>{
-    addSortHeaders();
-  }, 500);
-  
-  // Modal açılınca form'u dönüştür
+    const thead = document.querySelector('#page-cases thead tr');
+    if(thead) {
+      const headers = thead.querySelectorAll('th');
+      if(headers[0] && !headers[0].getAttribute('data-sort')) {
+        headers[0].setAttribute('data-sort','1');
+        headers[0].style.cursor='pointer';
+        headers[0].innerHTML='Büro No <span id="sort-buro">↑</span>';
+        headers[0].onclick=()=>sortCases('buro');
+        if(headers[2]){headers[2].style.cursor='pointer';headers[2].innerHTML='Müvekkil <span id="sort-muv">↕</span>';headers[2].onclick=()=>sortCases('muv');}
+        if(headers[8]){headers[8].style.cursor='pointer';headers[8].innerHTML='Sonraki Tarih <span id="sort-nextDate">↕</span>';headers[8].onclick=()=>sortCases('nextDate');}
+      }
+    }
+  }, 800);
+
+  // Modal açılınca arabuluculuk checkboxları + icra/güncel durum formu ekle
   const caseModal = document.getElementById('modal-case');
   if(caseModal) {
     const observer = new MutationObserver(()=>{
       if(caseModal.classList.contains('show')) {
         setTimeout(()=>{
-          addArabuluculukCheckboxes();
-          transformIcraAndGuncelDurum();
-          addSortHeaders();
+          // Arabuluculuk checkboxları
+          if(!document.getElementById('c-arabulucu-basvuruldu')) {
+            const arabulucuInput = document.getElementById('c-arabulucu');
+            if(arabulucuInput) {
+              const section = arabulucuInput.closest('.frow');
+              if(section) {
+                const checkRow = document.createElement('div');
+                checkRow.className = 'frow frow-2';
+                checkRow.style.marginBottom = '8px';
+                checkRow.innerHTML = `
+                  <div class="fg" style="display:flex;align-items:center;">
+                    <label class="fc-check"><input type="checkbox" id="c-arabulucu-basvuruldu"><span>Arabuluculuğa başvuruldu ✓</span></label>
+                  </div>
+                  <div class="fg" style="display:flex;align-items:center;">
+                    <label class="fc-check"><input type="checkbox" id="c-arabulucu-anlasildi"><span>Arabuluculukta anlaşıldı ✓</span></label>
+                  </div>`;
+                section.insertAdjacentElement('beforebegin', checkRow);
+              }
+            }
+          }
+
+          // Güncel Durum textarea → liste
+          const guncelTextarea = document.getElementById('c-guncel-durum');
+          if(guncelTextarea) {
+            const frow = guncelTextarea.closest('.frow');
+            if(frow) {
+              const listDiv = document.createElement('div');
+              listDiv.id = 'guncel-durum-list';
+              listDiv.style.marginBottom = '8px';
+              const addBtn = document.createElement('button');
+              addBtn.className = 'btn btn-s btn-sm';
+              addBtn.style.marginBottom = '12px';
+              addBtn.textContent = '+ Güncel Durum Notu Ekle';
+              addBtn.onclick = addGuncelDurum;
+              frow.replaceWith(listDiv, addBtn);
+              renderGuncelDurumList();
+            }
+          }
+
+          // İcra alanları → liste
+          const icraDaire = document.getElementById('c-icra-daire');
+          if(icraDaire && !document.getElementById('icra-list')) {
+            const icraSection = icraDaire.closest('.frow');
+            if(icraSection) {
+              const icraDiv = document.createElement('div');
+              icraDiv.id = 'icra-list';
+              icraDiv.style.marginBottom = '8px';
+              const addBtn = document.createElement('button');
+              addBtn.className = 'btn btn-s btn-sm';
+              addBtn.style.marginBottom = '12px';
+              addBtn.textContent = '+ İcra Takibi Ekle';
+              addBtn.onclick = addIcra;
+              // Tüm icra satırlarını gizle
+              let el = icraSection;
+              while(el && el.className !== 'mbody') {
+                const next = el.nextElementSibling;
+                if(el.classList && (el.classList.contains('frow') || el.tagName === 'DIV')) {
+                  if(el.querySelector && (el.querySelector('#c-icra-daire,#c-icra-esas,#c-icra-teblig-tarih,#c-teminat-tarih,#c-icra-tahsil,#c-icra-not'))) {
+                    el.style.display = 'none';
+                  }
+                }
+                el = next;
+                if(!el) break;
+              }
+              icraSection.style.display = 'none';
+              icraSection.insertAdjacentElement('beforebegin', icraDiv);
+              icraSection.insertAdjacentElement('beforebegin', addBtn);
+              renderIcraList();
+            }
+          }
         }, 50);
       }
     });
