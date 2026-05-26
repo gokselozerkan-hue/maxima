@@ -1825,7 +1825,7 @@ function fillCaseForm(c) {
   set('c-guncel-durum',c.guncelDurum);
   set('c-not',c.not);
   tmpDurusmalar = JSON.parse(JSON.stringify(c.durusmalar||[]));
-  tmpBilirkisi = (c.bilirkisiList||[]).map(b => Object.assign({}, b));
+  tmpBilirkisi = (c.bilirkisiList||[]).map(b => ({id:b.id||Date.now().toString(),beyanTarih:b.beyanTarih||'',beyanYapildi:!!b.beyanYapildi,not:b.not||''}));
   tmpMuzekkere = JSON.parse(JSON.stringify(c.muzekkere||[]));
   tmpGenelNotlar = JSON.parse(JSON.stringify(c.genelNotlar||[]));
   renderDurusmaList(); renderMuzList(); renderGenelNotList();
