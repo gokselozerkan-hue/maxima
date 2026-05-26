@@ -2186,31 +2186,29 @@ function renderBilList() {
   const cont = document.getElementById('bil-list');
   if(!cont) return;
   if(!tmpBilirkisi.length) {
-    cont.innerHTML = '<div class="txt-3" style="font-size:12px;padding:4px 0;">Henüz bilirkişi süreci eklenmedi.</div>';
+    cont.innerHTML = '<div class="txt-3" style="font-size:12px;padding:4px 0;">Henüz bilirkişi raporu eklenmedi.</div>';
     return;
   }
   cont.innerHTML = tmpBilirkisi.map((b,i) => `
-    <div style="background:var(--sur2);border:1px solid var(--brd);border-radius:8px;padding:10px 12px;margin-bottom:8px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <span style="font-size:12px;font-weight:600;color:var(--acc);">${i+1}. Bilirkişi Süreci</span>
+    <div style="padding:8px 0;border-bottom:1px solid var(--brd);">
+      <div class="flex" style="gap:8px;align-items:flex-end;">
+        <div style="flex:2;">
+          <label style="font-size:10px;color:var(--txt3);display:block;margin-bottom:3px;">RAPORA BEYAN SON GÜN</label>
+          <input type="date" class="fc" value="${b.beyanTarih||''}"
+            oninput="tmpBilirkisi[${i}].beyanTarih=this.value"
+            onchange="tmpBilirkisi[${i}].beyanTarih=this.value">
+        </div>
+        <div style="flex:2;display:flex;align-items:flex-end;padding-bottom:2px;">
+          <label class="fc-check">
+            <input type="checkbox" ${b.beyanYapildi?'checked':''} onchange="tmpBilirkisi[${i}].beyanYapildi=this.checked">
+            <span>Beyan yazıldı ✓</span>
+          </label>
+        </div>
+        <div style="flex:3;">
+          <label style="font-size:10px;color:var(--txt3);display:block;margin-bottom:3px;">NOT</label>
+          <input class="fc" placeholder="Açıklama..." value="${b.not||''}" oninput="tmpBilirkisi[${i}].not=this.value">
+        </div>
         <button class="ib" onclick="tmpBilirkisi.splice(${i},1);renderBilList()">🗑</button>
-      </div>
-      <div class="frow frow-4">
-        <div class="fg" style="display:flex;align-items:flex-end;">
-          <label class="fc-check"><input type="checkbox" ${b.gitti?'checked':''} onchange="tmpBilirkisi[${i}].gitti=this.checked"><span>Gönderildi</span></label>
-        </div>
-        <div class="fg" style="display:flex;align-items:flex-end;">
-          <label class="fc-check"><input type="checkbox" ${b.dondu?'checked':''} onchange="tmpBilirkisi[${i}].dondu=this.checked"><span>Döndü</span></label>
-        </div>
-        <div class="fg"><label>Rapora Beyan Son Gün</label>
-          <input type="date" class="fc" value="${b.beyanTarih||''}" onchange="handleBilDateField(this,${i})">
-        </div>
-        <div class="fg" style="display:flex;align-items:flex-end;">
-          <label class="fc-check"><input type="checkbox" ${b.beyanYapildi?'checked':''} onchange="tmpBilirkisi[${i}].beyanYapildi=this.checked"><span>Beyan yazıldı ✓</span></label>
-        </div>
-      </div>
-      <div class="frow" style="margin-top:6px;">
-        <div class="fg"><label>Not</label><input class="fc" placeholder="Açıklama..." value="${b.not||''}" onchange="tmpBilirkisi[${i}].not=this.value"></div>
       </div>
     </div>`).join('');
 }
