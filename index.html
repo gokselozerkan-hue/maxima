@@ -1224,7 +1224,10 @@ async function loadAllData() {
     API.get('calls'), API.get('chat'), API.get('users'),
     API.get('settings')
   ]);
-  cases = JSON.parse(JSON.stringify(c || [])); events = e || []; todos = t || []; calls = ca || [];
+  // Tüm veriyi string üzerinden parse et - referans paylaşımını tamamen kır
+  const raw = JSON.stringify({c,e,t,ca});
+  const parsed = JSON.parse(raw);
+  cases = parsed.c || []; events = parsed.e || []; todos = parsed.t || []; calls = parsed.ca || [];
   chatMsgs = ch || []; users = u || [];
   if(s && s.theme) settings = {...settings, ...s};
   lastChatLen = chatMsgs.length;
