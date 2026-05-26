@@ -1271,7 +1271,7 @@ function syncToServer() {
   syncTimer = setTimeout(async () => {
     try {
       await Promise.all([
-        API.put('cases', null, cases),
+        API.put('cases', null, JSON.parse(JSON.stringify(cases))),
         API.put('events', null, events),
         API.put('todos', null, todos),
         API.put('calls', null, calls),
