@@ -1770,7 +1770,7 @@ function openEditCase(id) {
   if(!c) return;
   document.getElementById('case-modal-title').textContent = 'Dava Düzenle — ' + (c.buro||'') + ' / ' + (c.muv||'');
   document.getElementById('case-del-btn').style.display = 'inline-flex';
-  fillCaseForm(c);
+  fillCaseForm(JSON.parse(JSON.stringify(c)));
   openMod('case');
 }
 
