@@ -1826,7 +1826,7 @@ function fillCaseForm(c) {
   set('c-guncel-durum',c.guncelDurum);
   set('c-not',c.not);
   tmpDurusmalar = JSON.parse(JSON.stringify(c.durusmalar||[]));
-  tmpBilirkisi = (c.bilirkisiList||[]).map(b => ({id:b.id||Date.now().toString(),beyanTarih:b.beyanTarih||'',beyanYapildi:!!b.beyanYapildi,not:b.not||''}));
+  fillBilList(c.bilirkisiList||[]);
   tmpMuzekkere = JSON.parse(JSON.stringify(c.muzekkere||[]));
   tmpGenelNotlar = JSON.parse(JSON.stringify(c.genelNotlar||[]));
   renderDurusmaList(); renderMuzList(); renderGenelNotList();
@@ -1847,7 +1847,7 @@ function readCaseForm() {
     beyanTarih: g('c-beyan-tarih'), beyanYapildi:c('c-beyan-yapildi'),
     giderTarih:g('c-gider-tarih'), giderYapildi:c('c-gider-yapildi'),
     kesifTarih:g('c-kesif-tarih'), kesifYapildi:c('c-kesif-yapildi'),
-    bilirkisiList: JSON.parse(JSON.stringify(tmpBilirkisi)),
+    bilirkisiList: readBilList(),
     islahYapilacak:c('c-islah-yapilacak'), islahYapilmayacak:c('c-islah-yapilmayacak'), islahTarih: g('c-islah-tarih'),
     islahYapildi:c('c-islah-yapildi'), islahNot:g('c-islah-not'),
     gkTarih:g('c-gk-tarih'), gkYazildi:c('c-gk-yazildi'), gkTeblig:c('c-gk-teblig'),
@@ -1859,7 +1859,7 @@ function readCaseForm() {
     icraTebligTarih:g('c-icra-teblig-tarih'), icraTebligYapildi:c('c-icra-teblig-yapildi'),
     teminatTarih:g('c-teminat-tarih'), teminatYapildi:c('c-teminat-yapildi'),
     icraTahsil:c('c-icra-tahsil'), icraNot:g('c-icra-not'), not:g('c-not'),
-    durusmalar: JSON.parse(JSON.stringify(tmpDurusmalar)), muzekkere: JSON.parse(JSON.stringify(tmpMuzekkere)), genelNotlar: JSON.parse(JSON.stringify(tmpGenelNotlar)), bilirkisiList: JSON.parse(JSON.stringify(tmpBilirkisi))
+    durusmalar: JSON.parse(JSON.stringify(tmpDurusmalar)), muzekkere: JSON.parse(JSON.stringify(tmpMuzekkere)), genelNotlar: JSON.parse(JSON.stringify(tmpGenelNotlar)), bilirkisiList: readBilList()
   };
 }
 
@@ -2178,44 +2178,89 @@ function toTitleCase(str) {
 }
 
 // BİLİRKİŞİ ÇOKLU
-function bilSet(i, key, val) {
-  tmpBilirkisi[i] = JSON.parse(JSON.stringify(tmpBilirkisi[i]));
-  tmpBilirkisi[i][key] = val;
-}  
 function addBilirkisi() {
-  tmpBilirkisi.push({ id: Date.now().toString(), beyanTarih: '', beyanYapildi: false, not: '' });
-  renderBilList();
+  const cont = document.getElementById('bil-list');
+  if(!cont) return;
+  const empty = cont.querySelector('.bil-empty');
+  if(empty) empty.remove();
+  const div = document.createElement('div');
+  div.className = 'bil-row';
+  div.style.cssText = 'padding:8px 0;border-bottom:1px solid var(--brd);';
+  div.innerHTML = `
+    <div class="flex" style="gap:8px;align-items:flex-end;">
+      <div style="flex:2;">
+        <label style="font-size:10px;color:var(--txt3);display:block;margin-bottom:3px;">RAPORA BEYAN SON GÜN</label>
+        <input type="date" class="fc bil-tarih" value="">
+      </div>
+      <div style="flex:2;display:flex;align-items:flex-end;padding-bottom:2px;">
+        <label class="fc-check">
+          <input type="checkbox" class="bil-yapildi">
+          <span>Beyan yazıldı ✓</span>
+        </label>
+      </div>
+      <div style="flex:3;">
+        <label style="font-size:10px;color:var(--txt3);display:block;margin-bottom:3px;">NOT</label>
+        <input class="fc bil-not" placeholder="Açıklama..." value="">
+      </div>
+      <button class="ib" onclick="this.closest('.bil-row').remove();updateBilEmpty()">🗑</button>
+    </div>`;
+  cont.appendChild(div);
+}
+
+function updateBilEmpty() {
+  const cont = document.getElementById('bil-list');
+  if(!cont) return;
+  if(!cont.querySelectorAll('.bil-row').length)
+    cont.innerHTML = '<div class="bil-empty txt-3" style="font-size:12px;padding:4px 0;">Henüz bilirkişi raporu eklenmedi.</div>';
 }
 
 function renderBilList() {
   const cont = document.getElementById('bil-list');
   if(!cont) return;
-  if(!tmpBilirkisi.length) {
-    cont.innerHTML = '<div class="txt-3" style="font-size:12px;padding:4px 0;">Henüz bilirkişi raporu eklenmedi.</div>';
-    return;
-  }
-  cont.innerHTML = tmpBilirkisi.map((b,i) => `
-    <div style="padding:8px 0;border-bottom:1px solid var(--brd);">
+  cont.innerHTML = '<div class="bil-empty txt-3" style="font-size:12px;padding:4px 0;">Henüz bilirkişi raporu eklenmedi.</div>';
+}
+
+function fillBilList(list) {
+  const cont = document.getElementById('bil-list');
+  if(!cont) return;
+  cont.innerHTML = '';
+  if(!list || !list.length) { renderBilList(); return; }
+  list.forEach(function(b) {
+    const div = document.createElement('div');
+    div.className = 'bil-row';
+    div.style.cssText = 'padding:8px 0;border-bottom:1px solid var(--brd);';
+    div.innerHTML = `
       <div class="flex" style="gap:8px;align-items:flex-end;">
         <div style="flex:2;">
           <label style="font-size:10px;color:var(--txt3);display:block;margin-bottom:3px;">RAPORA BEYAN SON GÜN</label>
-          <input type="date" class="fc" value="${b.beyanTarih||''}"
-            oninput="bilSet(${i},'beyanTarih',this.value)"
-            onchange="bilSet(${i},'beyanTarih',this.value)">
+          <input type="date" class="fc bil-tarih" value="${b.beyanTarih||''}">
         </div>
         <div style="flex:2;display:flex;align-items:flex-end;padding-bottom:2px;">
           <label class="fc-check">
-            <input type="checkbox" ${b.beyanYapildi?'checked':''} onchange="tmpBilirkisi[${i}].beyanYapildi=this.checked">
+            <input type="checkbox" class="bil-yapildi" ${b.beyanYapildi?'checked':''}>
             <span>Beyan yazıldı ✓</span>
           </label>
         </div>
         <div style="flex:3;">
           <label style="font-size:10px;color:var(--txt3);display:block;margin-bottom:3px;">NOT</label>
-          <input class="fc" placeholder="Açıklama..." value="${b.not||''}" oninput="tmpBilirkisi[${i}].not=this.value">
+          <input class="fc bil-not" placeholder="Açıklama..." value="${b.not||''}">
         </div>
-        <button class="ib" onclick="tmpBilirkisi.splice(${i},1);renderBilList()">🗑</button>
-      </div>
-    </div>`).join('');
+        <button class="ib" onclick="this.closest('.bil-row').remove();updateBilEmpty()">🗑</button>
+      </div>`;
+    cont.appendChild(div);
+  });
+}
+
+function readBilList() {
+  const rows = document.getElementById('bil-list')?.querySelectorAll('.bil-row') || [];
+  return Array.from(rows).map(function(row) {
+    return {
+      id: 'bil-' + Date.now() + Math.random(),
+      beyanTarih: row.querySelector('.bil-tarih')?.value || '',
+      beyanYapildi: row.querySelector('.bil-yapildi')?.checked || false,
+      not: row.querySelector('.bil-not')?.value || ''
+    };
+  });
 }
 
 // ZAMANAŞİMİ sayfası
