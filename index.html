@@ -1795,6 +1795,7 @@ function resetCaseForm() {
 }
 
 function fillCaseForm(c) {
+  tmpDurusmalar = []; tmpMuzekkere = []; tmpGenelNotlar = []; tmpBilirkisi = [];
   const set = (id, v) => { const el=document.getElementById(id); if(el&&v!==undefined&&v!==null) el.value=v; };
   const chk = (id, v) => { const el=document.getElementById(id); if(el) el.checked=!!v; };
   set('c-buro',c.buro); set('c-muv',c.muv); set('c-tel',c.tel);
