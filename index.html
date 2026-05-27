@@ -2195,8 +2195,8 @@ function renderBilList() {
         <div style="flex:2;">
           <label style="font-size:10px;color:var(--txt3);display:block;margin-bottom:3px;">RAPORA BEYAN SON GÜN</label>
           <input type="date" class="fc" value="${b.beyanTarih||''}"
-            oninput="tmpBilirkisi[${i}].beyanTarih=this.value"
-            onchange="tmpBilirkisi[${i}].beyanTarih=this.value">
+            oninput="bilSet(${i},'beyanTarih',this.value)"
+            onchange="bilSet(${i},'beyanTarih',this.value)">
         </div>
         <div style="flex:2;display:flex;align-items:flex-end;padding-bottom:2px;">
           <label class="fc-check">
