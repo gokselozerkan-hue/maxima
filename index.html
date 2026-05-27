@@ -2177,6 +2177,10 @@ function toTitleCase(str) {
 }
 
 // BİLİRKİŞİ ÇOKLU
+function bilSet(i, key, val) {
+  tmpBilirkisi[i] = JSON.parse(JSON.stringify(tmpBilirkisi[i]));
+  tmpBilirkisi[i][key] = val;
+}  
 function addBilirkisi() {
   tmpBilirkisi.push({ id: Date.now().toString(), beyanTarih: '', beyanYapildi: false, not: '' });
   renderBilList();
