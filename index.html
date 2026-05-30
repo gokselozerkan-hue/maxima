@@ -2649,12 +2649,13 @@ function showDeleteTodosPrompt(ilgili) {
       </div>
       <div class="mfoot">
         <button class="btn btn-s" onclick="document.getElementById('modal-delete-todos').remove()">Hiçbirini Silme</button>
-        <button class="btn btn-d" onclick="deleteCheckedTodos(${JSON.stringify(ilgili.map(t=>t.id))})">🗑 Seçilenleri Sil</button>
+        <button class="btn btn-d" id="btn-delete-checked">🗑 Seçilenleri Sil</button>
       </div>
     </div>`;
   document.body.appendChild(modal);
-}
-
+  document.getElementById('btn-delete-checked').addEventListener('click', function() {
+    deleteCheckedTodos(ilgili.map(t=>t.id));
+  });
 function deleteCheckedTodos(ids) {
   const toDelete = ids.filter(id => {
     const cb = document.getElementById('dtc-'+id);
