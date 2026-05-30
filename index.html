@@ -2190,7 +2190,7 @@ function addBilirkisi() {
     <div class="flex" style="gap:8px;align-items:flex-end;">
       <div style="flex:2;">
         <label style="font-size:10px;color:var(--txt3);display:block;margin-bottom:3px;">RAPORA BEYAN SON GÜN</label>
-        <input type="date" class="fc bil-tarih" value="" onchange="if(this.value) offerBilTodo(this.value, this.closest('#bil-list').querySelectorAll('.bil-row').length)">
+        <input type="date" class="fc bil-tarih" value="" onchange="var v=this.value; if(v && v.length===10) setTimeout(function(){offerBilTodo(v, document.getElementById('bil-list').querySelectorAll('.bil-row').length)},100)">
       </div>
       <div style="flex:2;display:flex;align-items:flex-end;padding-bottom:2px;">
         <label class="fc-check">
