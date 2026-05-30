@@ -2656,6 +2656,7 @@ function showDeleteTodosPrompt(ilgili) {
   document.getElementById('btn-delete-checked').addEventListener('click', function() {
     deleteCheckedTodos(ilgili.map(t=>t.id));
   });
+}
 function deleteCheckedTodos(ids) {
   const toDelete = ids.filter(id => {
     const cb = document.getElementById('dtc-'+id);
