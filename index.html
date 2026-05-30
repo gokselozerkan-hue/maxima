@@ -2245,7 +2245,7 @@ function fillBilList(list) {
           <label style="font-size:10px;color:var(--txt3);display:block;margin-bottom:3px;">NOT</label>
           <input class="fc bil-not" placeholder="Açıklama..." value="${b.not||''}">
         </div>
-        <button class="ib" onclick="this.closest('.bil-row').remove();updateBilEmpty()">🗑</button>
+        <button class="ib" onclick="var tarih=this.closest('.bil-row').querySelector('.bil-tarih')?.value||''; this.closest('.bil-row').remove(); updateBilEmpty(); if(tarih) checkDateTodosByDate(tarih,'Bilirkişi Raporu Beyan');">🗑</button>
       </div>`;
     cont.appendChild(div);
   });
