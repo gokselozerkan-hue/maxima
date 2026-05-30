@@ -2202,7 +2202,7 @@ function addBilirkisi() {
         <label style="font-size:10px;color:var(--txt3);display:block;margin-bottom:3px;">NOT</label>
         <input class="fc bil-not" placeholder="Açıklama..." value="">
       </div>
-      <button class="ib" onclick="var tarih=this.closest('.bil-row').querySelector('.bil-tarih')?.value||''; this.closest('.bil-row').remove(); updateBilEmpty(); if(tarih) checkDateTodosByDate(tarih,'Bilirkişi Raporu Beyan');">🗑</button>
+      <button class="ib" onclick="var _row=this.closest('.bil-row'); var _tarih=_row.querySelector('.bil-tarih')?.value||''; _row.remove(); updateBilEmpty(); if(_tarih) checkDateTodosByDate(_tarih,'Bilirkişi Raporu Beyan');">🗑</button>
     </div>`;
   cont.appendChild(div);
 }
@@ -2245,7 +2245,7 @@ function fillBilList(list) {
           <label style="font-size:10px;color:var(--txt3);display:block;margin-bottom:3px;">NOT</label>
           <input class="fc bil-not" placeholder="Açıklama..." value="${b.not||''}">
         </div>
-        <button class="ib" onclick="var tarih=this.closest('.bil-row').querySelector('.bil-tarih')?.value||''; this.closest('.bil-row').remove(); updateBilEmpty(); if(tarih) checkDateTodosByDate(tarih,'Bilirkişi Raporu Beyan');">🗑</button>
+        <button class="ib" onclick="var _row=this.closest('.bil-row'); var _tarih=_row.querySelector('.bil-tarih')?.value||''; _row.remove(); updateBilEmpty(); if(_tarih) checkDateTodosByDate(_tarih,'Bilirkişi Raporu Beyan');">🗑</button>
       </div>`;
     cont.appendChild(div);
   });
