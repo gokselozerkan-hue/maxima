@@ -746,7 +746,7 @@ textarea.fc{resize:vertical;min-height:70px;}
 </div><!-- /app -->
 
 <!-- CASE MODAL (New/Edit) -->
-<div class="moverlay" id="modal-case">
+<div class="moverlay" id="modal-case" oninput="caseFormDirty=true" onchange="caseFormDirty=true">
   <div class="modal">
     <div class="mhead">
       <h2 id="case-modal-title">Yeni Dava Dosyası</h2>
@@ -1254,6 +1254,7 @@ let tmpDurusmalar = [];
 let tmpMuzekkere = [];
 let tmpGenelNotlar = [];
 let tmpBilirkisi = [];
+let caseFormDirty = false;
 
 const now = new Date();
 calYear = now.getFullYear();
@@ -1749,6 +1750,7 @@ function fmtDate(d) {
 // CASE MODAL
 // =========================================================
 function openNewCase() {
+  caseFormDirty = false;
   editingCaseId = null;
   document.getElementById('case-modal-title').textContent = 'Yeni Dava Dosyası';
   document.getElementById('case-del-btn').style.display = 'none';
@@ -1765,6 +1767,7 @@ function openNewCase() {
 }
 
 function openEditCase(id) {
+  caseFormDirty = false;
   editingCaseId = id;
   const c = cases.find(x=>x.id===id);
   if(!c) return;
@@ -1880,7 +1883,7 @@ function saveCase() {
     addLog('Yeni Dava Eklendi', `Büro: ${data.buro} — ${data.muv}`);
     syncCaseEvents(newCase.id, data);
   }
-  save(); closeMod('case');
+  caseFormDirty = false; save(); closeMod('case');
   showToast('✅','Kaydedildi', data.muv + ' davası kaydedildi.');
   updateStats(); renderRecentCases(); renderCasesTable(); renderCalendar(); renderDashboardUpcoming();
 }
@@ -1945,7 +1948,7 @@ function renderMuzList() {
         <input class="fc" style="flex:3;" placeholder="Müzekkere adı/açıklaması..." value="${m.ad||''}" onchange="tmpMuzekkere[${i}].ad=this.value">
         <label class="fc-check"><input type="checkbox" ${m.yazildi?'checked':''} onchange="tmpMuzekkere[${i}].yazildi=this.checked"><span>Yazıldı</span></label>
         <label class="fc-check"><input type="checkbox" ${m.cevap?'checked':''} onchange="tmpMuzekkere[${i}].cevap=this.checked"><span>Cevap Geldi</span></label>
-        <button class="ib" onclick="tmpMuzekkere.splice(${i},1);renderMuzList()">🗑</button>
+        <button class="ib" onclick="if(!confirm('Bu müzekkereyi silmek istediğinizden emin misiniz?')) return; tmpMuzekkere.splice(${i},1);renderMuzList()">🗑</button>
       </div>
       <div class="flex" style="gap:8px;">
         <div style="flex:1;"><label style="font-size:10px;color:var(--txt3);display:block;margin-bottom:3px;">Hatırlatıcı Tarihi</label>
@@ -1967,7 +1970,7 @@ function renderGenelNotList() {
     <div class="flex" style="gap:8px;padding:6px 0;border-bottom:1px solid var(--brd);align-items:flex-start;">
       <input type="date" class="fc" style="flex:1;flex-shrink:0;" value="${n.tarih||''}" onchange="tmpGenelNotlar[${i}].tarih=this.value">
       <textarea class="fc" style="flex:4;" rows="2" onchange="tmpGenelNotlar[${i}].metin=this.value">${n.metin||''}</textarea>
-      <button class="ib" onclick="tmpGenelNotlar.splice(${i},1);renderGenelNotList()">🗑</button>
+      <button class="ib" onclick="if(!confirm('Bu notu silmek istediğinizden emin misiniz?')) return; tmpGenelNotlar.splice(${i},1);renderGenelNotList()">🗑</button>
     </div>`).join('');
 }
 
@@ -2130,7 +2133,13 @@ function renderLog() {
 // MODAL HELPERS
 // =========================================================
 function openMod(id) { document.getElementById('modal-'+id).classList.add('show'); }
-function closeMod(id) { document.getElementById('modal-'+id).classList.remove('show'); }
+function closeMod(id) {
+  if(id === 'case' && caseFormDirty) {
+    if(!confirm('Kaydedilmemiş değişiklikler var. Çıkmak istediğinizden emin misiniz?')) return;
+  }
+  caseFormDirty = false;
+  document.getElementById('modal-'+id).classList.remove('show');
+}
 document.querySelectorAll('.moverlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('show'); }));
 
 // =========================================================
@@ -2202,7 +2211,7 @@ function addBilirkisi() {
         <label style="font-size:10px;color:var(--txt3);display:block;margin-bottom:3px;">NOT</label>
         <input class="fc bil-not" placeholder="Açıklama..." value="">
       </div>
-      <button class="ib" onclick="var _row=this.closest('.bil-row'); var _tarih=_row.querySelector('.bil-tarih')?.value||''; _row.remove(); updateBilEmpty(); if(_tarih) checkDateTodosByDate(_tarih,'Bilirkişi Raporu Beyan');">🗑</button>
+      <button class="ib" onclick="if(!confirm('Bu bilirkişi kaydını silmek istediğinizden emin misiniz?')) return; var _row=this.closest('.bil-row'); var _tarih=_row.querySelector('.bil-tarih')?.value||''; _row.remove(); updateBilEmpty(); if(_tarih) checkDateTodosByDate(_tarih,'Bilirkişi Raporu Beyan');">🗑</button>
     </div>`;
   cont.appendChild(div);
 }
@@ -2245,7 +2254,7 @@ function fillBilList(list) {
           <label style="font-size:10px;color:var(--txt3);display:block;margin-bottom:3px;">NOT</label>
           <input class="fc bil-not" placeholder="Açıklama..." value="${b.not||''}">
         </div>
-        <button class="ib" onclick="var _row=this.closest('.bil-row'); var _tarih=_row.querySelector('.bil-tarih')?.value||''; _row.remove(); updateBilEmpty(); if(_tarih) checkDateTodosByDate(_tarih,'Bilirkişi Raporu Beyan');">🗑</button>
+        <button class="ib" onclick="if(!confirm('Bu bilirkişi kaydını silmek istediğinizden emin misiniz?')) return; var _row=this.closest('.bil-row'); var _tarih=_row.querySelector('.bil-tarih')?.value||''; _row.remove(); updateBilEmpty(); if(_tarih) checkDateTodosByDate(_tarih,'Bilirkişi Raporu Beyan');">🗑</button>
       </div>`;
     cont.appendChild(div);
   });
@@ -2333,9 +2342,17 @@ function saveCall() {
     caseNo: document.getElementById('cl-case').value.trim(),
     talepKarsilandi: document.getElementById('cl-talep').checked,
     note: document.getElementById('cl-note').value.trim(),
-    done: editingCallId ? (calls.find(c=>c.id===editingCallId)?.done||false) : false,
-    doneBy: editingCallId ? (calls.find(c=>c.id===editingCallId)?.doneBy||'') : '',
-    doneAt: editingCallId ? (calls.find(c=>c.id===editingCallId)?.doneAt||'') : '',
+    done: document.getElementById('cl-talep').checked,
+    doneBy: document.getElementById('cl-talep').checked 
+      ? (editingCallId && calls.find(c=>c.id===editingCallId)?.talepKarsilandi 
+          ? (calls.find(c=>c.id===editingCallId)?.doneBy||currentUser) 
+          : currentUser) 
+      : '',
+    doneAt: document.getElementById('cl-talep').checked 
+      ? (editingCallId && calls.find(c=>c.id===editingCallId)?.talepKarsilandi 
+          ? (calls.find(c=>c.id===editingCallId)?.doneAt||new Date().toISOString()) 
+          : new Date().toISOString()) 
+      : '',
     createdBy: currentUser,
     createdAt: editingCallId ? (calls.find(c=>c.id===editingCallId)?.createdAt||Date.now()) : Date.now()
   };
