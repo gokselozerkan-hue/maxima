@@ -543,6 +543,7 @@ textarea.fc{resize:vertical;min-height:70px;}
         <div class="tabs">
           <div class="tab active" onclick="filterCases('all',this)">Tümü</div>
           <div class="tab" onclick="filterCases('arabulucu',this)">Arabulucuya Başvurulacak</div>
+          <div class="tab" onclick="filterCases('arabulucuBasvuruldu',this)">Arabuluculuğa Başvuruldu</div>
           <div class="tab" onclick="filterCases('davaacilacak',this)">Dava Açılacak</div>
           <div class="tab" onclick="filterCases('active',this)">İlk Derece</div>
           <div class="tab" onclick="filterCases('bam',this)">BAM</div>
@@ -761,6 +762,7 @@ textarea.fc{resize:vertical;min-height:70px;}
         <div class="fg"><label>Durum</label>
           <select class="fc" id="c-status">
             <option value="arabulucu">Arabulucuya Başvurulacak</option>
+            <option value="arabulucuBasvuruldu">Arabuluculuğa Başvuruldu</option>
             <option value="davaacilacak">Dava Açılacak</option>
             <option value="active">İlk Derece</option>
             <option value="bam">BAM</option>
@@ -774,7 +776,7 @@ textarea.fc{resize:vertical;min-height:70px;}
             <option>İşçilik Alacağı</option><option>İşe İade</option><option>İş Kazası</option>
             <option>Tespit</option><option>Kira</option><option>Boşanma</option>
             <option>Miras</option><option>Ticaret</option><option>İdare</option>
-            <option>Ceza</option><option>İcra</option><option>Diğer</option>
+            <option>Ceza</option><option>İcra</option><option>İtirazın İptali</option><option>Diğer</option>
           </select>
         </div>
         <div class="fg"><label>Mahkeme Kararı</label>
@@ -1672,8 +1674,8 @@ function renderUpItem(d) {
 // CASES TABLE
 // =========================================================
 function statusBadge(s) {
-  const map = {arabulucu:'bb',davaacilacak:'bu',active:'ba',bam:'bp',infaz:'bc',urgent:'bu',closed:'bc'};
-  const lbl = {arabulucu:'Arabulucuya Başvurulacak',davaacilacak:'Dava Açılacak',active:'İlk Derece',bam:'BAM',infaz:'İnfaz',urgent:'Acil',closed:'Kapalı'};
+  const map = {arabulucu:'bb',arabulucuBasvuruldu:'bb',davaacilacak:'bu',active:'ba',bam:'bp',infaz:'bc',urgent:'bu',closed:'bc'};
+  const lbl = {arabulucu:'Arabulucuya Başvurulacak',arabulucuBasvuruldu:'Arabuluculuğa Başvuruldu',davaacilacak:'Dava Açılacak',active:'İlk Derece',bam:'BAM',infaz:'İnfaz',urgent:'Acil',closed:'Kapalı'};
   return `<span class="badge ${map[s]||'bc'}">${lbl[s]||s}</span>`;
 }
 
@@ -1810,7 +1812,7 @@ function fillCaseForm(c) {
   set('c-zamanasimi', c.zamanasimi);
   set('c-delil-tarih',c.delilTarih); chk('c-delil-yapildi',c.delilYapildi);
   set('c-beyan-tarih',c.beyanTarih); chk('c-beyan-yapildi',c.beyanYapildi);
-  set('c-gider-tarih',c.giderTarih); chk('c-gider-yapildi','c-kesif-yapildi',c.giderYapildi);
+  set('c-gider-tarih',c.giderTarih); chk('c-gider-yapildi',c.giderYapildi);
   set('c-kesif-tarih',c.kesifTarih); chk('c-kesif-yapildi',c.kesifYapildi);
   chk('c-bil-gitti',c.bilGitti); chk('c-bil-dondu',c.bilDondu);
   set('c-bil-beyan-tarih',c.bilBeyanTarih); chk('c-bil-beyan-yapildi',c.bilBeyanYapildi);
@@ -1864,6 +1866,47 @@ function readCaseForm() {
     icraTahsil:c('c-icra-tahsil'), icraNot:g('c-icra-not'), not:g('c-not'),
     durusmalar: JSON.parse(JSON.stringify(tmpDurusmalar)), muzekkere: JSON.parse(JSON.stringify(tmpMuzekkere)), genelNotlar: JSON.parse(JSON.stringify(tmpGenelNotlar)), bilirkisiList: readBilList()
   };
+}
+
+
+function syncTodosWithCase(data) {
+  // Dava formundaki "yapıldı" checkboxlarına göre yapılacakları senkronize et
+  const buro = data.buro || '';
+  const muv = data.muv || '';
+  const pairs = [
+    {yapildi: data.delilYapildi, keyword: 'Delil Bildirimi'},
+    {yapildi: data.tanikYapildi, keyword: 'Tanık Bildirimi'},
+    {yapildi: data.beyanYapildi, keyword: 'Tanık Beyan'},
+    {yapildi: data.islahYapildi, keyword: 'Islah Son Gün'},
+    {yapildi: data.istinafYapildi, keyword: 'İstinaf Son Günü'},
+    {yapildi: data.giderYapildi, keyword: 'Gider Avansı'},
+    {yapildi: data.kesifYapildi, keyword: 'Keşif'},
+  ];
+  let changed = false;
+  pairs.forEach(function(pair) {
+    if(!pair.yapildi) return;
+    todos = todos.map(function(t) {
+      if(t.done) return t;
+      if(t.title.includes(pair.keyword) && (t.title.includes(muv) || t.title.includes(buro))) {
+        changed = true;
+        return {...t, done: true, doneBy: currentUser, doneAt: new Date().toISOString()};
+      }
+      return t;
+    });
+  });
+  // Bilirkişi beyan yapıldı checkboxları
+  (data.bilirkisiList||[]).forEach(function(b, i) {
+    if(!b.beyanYapildi) return;
+    todos = todos.map(function(t) {
+      if(t.done) return t;
+      if(t.title.includes('Bilirkişi Raporu Beyan') && (t.title.includes(muv) || t.title.includes(buro))) {
+        changed = true;
+        return {...t, done: true, doneBy: currentUser, doneAt: new Date().toISOString()};
+      }
+      return t;
+    });
+  });
+  if(changed) save();
 }
 
 function saveCase() {
@@ -1922,7 +1965,7 @@ function renderDurusmaList() {
   cont.innerHTML = tmpDurusmalar.map((d,i)=>`
     <div style="padding:8px 0;border-bottom:1px solid var(--brd);">
       <div class="flex" style="gap:8px;margin-bottom:6px;">
-        <input type="date" class="fc" style="flex:2;" value="${d.tarih}" onchange="tmpDurusmalar[${i}].tarih=this.value">
+        <input type="date" class="fc" style="flex:2;" value="${d.tarih}" onchange="tmpDurusmalar[${i}].tarih=this.value; handleDateField(this,'Duruşma')">
         <input type="time" class="fc" style="flex:1;" value="${d.saat}" onchange="tmpDurusmalar[${i}].saat=this.value">
         <input class="fc" style="flex:3;" placeholder="Not..." value="${d.not||''}" onchange="tmpDurusmalar[${i}].not=this.value">
         <button class="ib" onclick="if(confirm('Bu duruşmayı silmek istiyor musunuz?')) { tmpDurusmalar.splice(${i},1);renderDurusmaList(); }">🗑</button>
@@ -2496,7 +2539,7 @@ function exportExcel() {
 
 function exportExcelCSV() {
   const statusLbl = {
-    arabulucu:'Arabulucuya Başvurulacak', davaacilacak:'Dava Açılacak',
+    arabulucu:'Arabulucuya Başvurulacak', arabulucuBasvuruldu:'Arabuluculuğa Başvuruldu', davaacilacak:'Dava Açılacak',
     active:'İlk Derece', bam:'BAM', infaz:'İnfaz', urgent:'Acil', closed:'Kapalı'
   };
   const headers = [
@@ -2834,9 +2877,9 @@ function renderTodos() {
   } else if(todoTimeFilter === 0) {
     list = list.filter(t=>!t.done && t.due && daysDiff(t.due)===0);
   } else if(todoTimeFilter < 999) {
-    list = list.filter(t=>!t.done && t.due && daysDiff(t.due)>=0 && daysDiff(t.due)<=todoTimeFilter);
+    list = list.filter(t=>!t.done && t.due && daysDiff(t.due)<=todoTimeFilter);
   } else {
-    // Tümü — bekleyenler önce
+    // Tümü — bekleyenler önce (geçmiş tarihler dahil)
     list = list.filter(t=>!t.done);
   }
   // Sıralama: acil/süreli iş önce, sonra tarihe göre
