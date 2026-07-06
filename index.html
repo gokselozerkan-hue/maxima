@@ -1555,8 +1555,9 @@ function goPage(id, el) {
 function updateStats() {
   document.getElementById('st-total').textContent = cases.length;
   document.getElementById('st-active').textContent = cases.filter(c=>c.status==='active'||c.status==='urgent').length;
-  const thisM = events.filter(e=>{
-    const d=new Date(e.date); return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()&&e.type==='hearing';
+  const thisM = getAllDates().filter(e=>{
+    if(e.type!=='hearing'||!e.date) return false;
+    const d=new Date(e.date); return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
   });
   document.getElementById('st-hearings').textContent = thisM.length;
   const upcoming7 = getAllDates().filter(d=>{ const diff=daysDiff(d.date); return diff>=0&&diff<=7; });
@@ -1689,7 +1690,7 @@ function renderCasesTable() {
       .replace(/ş/g,'s').replace(/Ş/g,'s').replace(/ç/g,'c').replace(/Ç/g,'c')
       .replace(/ö/g,'o').replace(/Ö/g,'o').replace(/ü/g,'u').replace(/Ü/g,'u');
     const q = normalize(caseSearch);
-    list = list.filter(c => normalize(c.buro+c.muv+c.tel+c.mahkeme+(c.konu||'')+(c.guncelDurum||'')+c.karsitaraf).includes(q));
+    list = list.filter(c => normalize(c.buro+c.muv+c.tel+c.mahkeme+(c.esas||'')+(c.konu||'')+(c.guncelDurum||'')+c.karsitaraf).includes(q));
   }
   list.sort((a,b)=>{
     const na = parseInt((a.buro||'').replace(/\D/g,''))||0;
@@ -1697,7 +1698,7 @@ function renderCasesTable() {
     if(na !== nb) return na - nb;
     return (a.buro||'').localeCompare(b.buro||'');
   });
-  if(!list.length){ tb.innerHTML='<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--txt3)">Sonuç bulunamadı</td></tr>'; return; }
+  if(!list.length){ tb.innerHTML='<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--txt3)">Sonuç bulunamadı</td></tr>'; return; }
   const kararLbl = {kabul:'Kabul',red:'Red',kismi:'Kısmi'};
   tb.innerHTML = list.map(c=>{
     const nextDate = getNextDate(c);
@@ -1722,8 +1723,9 @@ function renderCasesTable() {
 }
 
 function getNextDate(c) {
-  const dates = [c.arabulucu, c.davaAc, c.zamanasimi, c.delilTarih, c.beyanTarih, c.giderTarih, c.bilBeyanTarih, c.islahTarih, c.istinafTarih];
+  const dates = [c.arabulucu, c.davaAc, c.zamanasimi, c.delilTarih, c.tanikTarih, c.beyanTarih, c.giderTarih, c.bilBeyanTarih, c.islahTarih, c.istinafTarih, c.kesifTarih];
   (c.durusmalar||[]).forEach(d=>dates.push(d.tarih));
+  (c.bilirkisiList||[]).forEach(b=>{ if(!b.beyanYapildi) dates.push(b.beyanTarih); });
   const today = new Date(); today.setHours(0,0,0,0);
   const future = dates.filter(d=>d && new Date(d)>=today).sort();
   return future[0] || null;
@@ -1852,7 +1854,6 @@ function readCaseForm() {
     beyanTarih: g('c-beyan-tarih'), beyanYapildi:c('c-beyan-yapildi'),
     giderTarih:g('c-gider-tarih'), giderYapildi:c('c-gider-yapildi'),
     kesifTarih:g('c-kesif-tarih'), kesifYapildi:c('c-kesif-yapildi'),
-    bilirkisiList: readBilList(),
     islahYapilacak:c('c-islah-yapilacak'), islahYapilmayacak:c('c-islah-yapilmayacak'), islahTarih: g('c-islah-tarih'),
     islahYapildi:c('c-islah-yapildi'), islahNot:g('c-islah-not'),
     gkTarih:g('c-gk-tarih'), gkYazildi:c('c-gk-yazildi'), gkTeblig:c('c-gk-teblig'),
@@ -2183,7 +2184,7 @@ function closeMod(id) {
   caseFormDirty = false;
   document.getElementById('modal-'+id).classList.remove('show');
 }
-document.querySelectorAll('.moverlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('show'); }));
+document.querySelectorAll('.moverlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o){ const mid=o.id.replace('modal-',''); closeMod(mid); } }));
 
 // =========================================================
 // TOAST
@@ -2320,9 +2321,9 @@ function renderZamanasimi() {
   const tbody = document.getElementById('zamanasimi-tbody');
   const countEl = document.getElementById('zamanasimi-count');
   if(!tbody) return;
-  const search = (document.getElementById('za-search')?.value || '').toLowerCase();
+  const search = (document.getElementById('za-search')?.value || '').toLocaleLowerCase('tr-TR');
   let list = cases.filter(c => c.zamanasimi && c.zamanasimi.trim());
-  if(search) list = list.filter(c => (c.buro+c.muv+c.zamanasimi).toLowerCase().includes(search));
+  if(search) list = list.filter(c => (c.buro+c.muv+c.zamanasimi).toLocaleLowerCase('tr-TR').includes(search));
   list.sort((a,b) => new Date(a.zamanasimi) - new Date(b.zamanasimi));
   if(countEl) countEl.textContent = `Toplam ${list.length} dosya`;
   if(!list.length) {
@@ -2444,11 +2445,11 @@ function renderCalls() {
   const tbody = document.getElementById('calls-tbody');
   if(!tbody) return;
   const fStatus = document.getElementById('call-filter-status')?.value || 'all';
-  const search = (document.getElementById('call-search')?.value || '').toLowerCase();
+  const search = (document.getElementById('call-search')?.value || '').toLocaleLowerCase('tr-TR');
   let list = [...calls];
   if(fStatus==='pending') list = list.filter(c=>!c.talepKarsilandi);
   if(fStatus==='done') list = list.filter(c=>c.talepKarsilandi);
-  if(search) list = list.filter(c=>(c.name+c.phone+c.caseNo+c.note).toLowerCase().includes(search));
+  if(search) list = list.filter(c=>(c.name+c.phone+c.caseNo+c.note).toLocaleLowerCase('tr-TR').includes(search));
   list.sort((a,b)=>{
     if(a.talepKarsilandi!==b.talepKarsilandi) return a.talepKarsilandi?1:-1;
     return new Date(b.date+' '+b.time) - new Date(a.date+' '+a.time);
@@ -2577,7 +2578,7 @@ function exportExcelCSV() {
 function exportData() {
   // Sunucudan yedek indir
   window.location.href = '/api/backup';
-  addLog('Veri Yedeklendi', currentUser, cases.length + ' dava');
+  addLog('Veri Yedeklendi', cases.length + ' dava');
   showToast('💾','Yedek İndiriliyor', cases.length + ' dava yedekleniyor...');
 }
 
