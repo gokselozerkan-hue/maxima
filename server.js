@@ -176,7 +176,7 @@ const server = http.createServer(async(req,res)=>{
       const casesData=body.cases||[];
       try {
         const XLSX=require('xlsx');
-        const statusLbl={arabulucu:'Arabulucuya Başvurulacak',davaacilacak:'Dava Açılacak',active:'İlk Derece',bam:'BAM',infaz:'İnfaz',urgent:'Acil',closed:'Kapalı'};
+        const statusLbl={arabulucu:'Arabulucuya Başvurulacak',arabulucuBasvuruldu:'Arabuluculuğa Başvuruldu',davaacilacak:'Dava Açılacak',active:'İlk Derece',bam:'BAM',infaz:'İnfaz',urgent:'Acil',closed:'Kapalı'};
         const fmtDate=d=>{if(!d||d.length<10)return '';return d.slice(8,10)+'.'+d.slice(5,7)+'.'+d.slice(0,4);};
         const headers=['BÜRO NO','DURUMU','MÜVEKKİL ADI SOYADI','MÜVEKKİL TELEFONU','KARŞI TARAF','DAVA TÜRÜ','MAHKEME ADI','ESAS NO','ARABULUCULUĞA BAŞVURU TARİHİ','DAVA AÇILACAK TARİH','ZAMANAŞIMI TARİHİ','GENEL NOT','KEŞİF/YERİNDE İNCELEME TARİHİ','ISLAH SON GÜN','İSTİNAF SON GÜN','İCRA DAİRESİ','İCRA ESAS NO','İCRA NOTLARI'];
         const rows=casesData.map(c=>[
