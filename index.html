@@ -547,6 +547,7 @@ textarea.fc{resize:vertical;min-height:70px;}
           <div class="tab" onclick="filterCases('davaacilacak',this)">Dava Açılacak</div>
           <div class="tab" onclick="filterCases('active',this)">İlk Derece</div>
           <div class="tab" onclick="filterCases('bam',this)">BAM</div>
+          <div class="tab" onclick="filterCases('yargitay',this)">Yargıtay</div>
           <div class="tab" onclick="filterCases('infaz',this)">İnfaz</div>
           <div class="tab" onclick="filterCases('closed',this)">Kapalı</div>
           <div class="tab" onclick="filterCases('urgent',this)">Acil</div>
@@ -696,8 +697,9 @@ textarea.fc{resize:vertical;min-height:70px;}
           <div class="tab" onclick="filterTodo(3,this)">3 Gün</div>
           <div class="tab" onclick="filterTodo(7,this)">7 Gün</div>
           <div class="tab" onclick="filterTodo(30,this)">30 Gün</div>
-          <div class="tab" onclick="filterTodo(999,this)">Tümü</div>
+          <div class="tab" onclick="filterTodo(-2,this)">Süresi Geçenler</div>
           <div class="tab" onclick="filterTodo(-1,this)">Tamamlananlar</div>
+          <div class="tab" onclick="filterTodo(999,this)">Tümü</div>
         </div>
         <div id="todo-done-search-wrap" style="display:none;margin-bottom:12px;">
           <input class="sbox" id="todo-done-search-input" placeholder="🔍 Büro no veya müvekkil adı..." oninput="renderTodos()" style="width:100%;max-width:360px;">
@@ -766,6 +768,7 @@ textarea.fc{resize:vertical;min-height:70px;}
             <option value="davaacilacak">Dava Açılacak</option>
             <option value="active">İlk Derece</option>
             <option value="bam">BAM</option>
+            <option value="yargitay">Yargıtay</option>
             <option value="infaz">İnfaz</option>
             <option value="urgent">Acil</option>
             <option value="closed">Kapalı</option>
@@ -1012,44 +1015,8 @@ textarea.fc{resize:vertical;min-height:70px;}
 
       <!-- İCRA -->
       <div class="div-title">İcra Takibi</div>
-      <div class="frow frow-3">
-        <div class="fg" style="display:flex;align-items:flex-end;">
-          <label class="fc-check" style="padding-bottom:2px;">
-            <input type="checkbox" id="c-icra-yapildi">
-            <span>İcra takibi yapıldı</span>
-          </label>
-        </div>
-        <div class="fg"><label>İcra Dairesi</label><input class="fc" id="c-icra-daire" placeholder="... İcra Müdürlüğü" oninput="this.value=toTitleCase(this.value)"></div>
-        <div class="fg"><label>İcra Esas No</label><input class="fc" id="c-icra-esas" placeholder="2024/1234" oninput="formatEsas(this)" maxlength="20"></div>
-      </div>
-      <div class="frow frow-4">
-        <div class="fg"><label>Tebliğ Kontrol Tarihi</label><input type="date" class="fc" id="c-icra-teblig-tarih"></div>
-        <div class="fg" style="display:flex;align-items:flex-end;">
-          <label class="fc-check" style="padding-bottom:2px;">
-            <input type="checkbox" id="c-icra-teblig-yapildi">
-            <span>Tebliğ edildi ✓</span>
-          </label>
-        </div>
-        <div class="fg"><label>Teminat Kontrol Tarihi</label><input type="date" class="fc" id="c-teminat-tarih"></div>
-        <div class="fg" style="display:flex;align-items:flex-end;">
-          <label class="fc-check" style="padding-bottom:2px;">
-            <input type="checkbox" id="c-teminat-yapildi">
-            <span>Teminat yatırıldı ✓</span>
-          </label>
-        </div>
-      </div>
-      <div class="frow frow-2">
-        <div class="fg" style="display:flex;align-items:flex-end;">
-          <label class="fc-check" style="padding-bottom:2px;">
-            <input type="checkbox" id="c-icra-tahsil">
-            <span>İcra dosyası tahsil edildi ✓</span>
-          </label>
-        </div>
-        <div class="fg"></div>
-      </div>
-      <div class="frow">
-        <div class="fg"><label>İcra Notları</label><textarea class="fc" id="c-icra-not" placeholder="İcra ile ilgili notlar..."></textarea></div>
-      </div>
+      <div id="icra-list" style="margin-bottom:8px;"></div>
+      <button class="btn btn-s btn-sm" onclick="addIcra()">+ İcra Takibi Ekle</button>
 
       <!-- NOTLAR PLACEHOLDER - yukarıya taşındı -->
 
@@ -1618,8 +1585,15 @@ function getAllDates() {
     add(c.ktIstinafTarih, '👁 Karşı Taraf İstinaf Kontrol', 'other', 'normal');
     add(c.iseIadeTarih, '🏢 İşe Başlatma Süre Sonu', 'deadline', 'urgent');
     add(c.tebligSerhiTarih, '📋 Tebliğ Şerhi Alınma', 'deadline', 'normal');
-    add(c.icraTebligTarih, '📨 İcra Tebliğ Kontrol', 'other', 'normal');
-    add(c.teminatTarih, '🔒 Teminat Kontrol', 'other', 'normal');
+    if(c.icraList && c.icraList.length) {
+      c.icraList.forEach(ic => {
+        if(!ic.tebligYapildi) add(ic.tebligTarih, '📨 İcra Tebliğ Kontrol', 'other', 'normal');
+        if(!ic.teminatYapildi) add(ic.teminatTarih, '🔒 Teminat Kontrol', 'other', 'normal');
+      });
+    } else {
+      add(c.icraTebligTarih, '📨 İcra Tebliğ Kontrol', 'other', 'normal');
+      add(c.teminatTarih, '🔒 Teminat Kontrol', 'other', 'normal');
+    }
     (c.durusmalar||[]).forEach(d => { if(d.tarih) result.push({ date: d.tarih.trim(), title: '🏛 Duruşma — ' + (c.muv||'') + (d.saat?' '+d.saat:''), sub: 'Büro: '+(c.buro||'?')+' — '+d.saat, priority: 'low', type: 'hearing', noAlarm: true }); });
     if(c.kesifTarih && c.kesifTarih.trim()) result.push({ date: c.kesifTarih.trim(), title: '🔍 Keşif/Yerinde İnceleme — ' + (c.muv||''), sub: 'Büro: '+(c.buro||'?'), priority: 'low', type: 'hearing', noAlarm: true });
     (c.muzekkere||[]).forEach(m => {
@@ -1675,8 +1649,8 @@ function renderUpItem(d) {
 // CASES TABLE
 // =========================================================
 function statusBadge(s) {
-  const map = {arabulucu:'bb',arabulucuBasvuruldu:'bb',davaacilacak:'bu',active:'ba',bam:'bp',infaz:'bc',urgent:'bu',closed:'bc'};
-  const lbl = {arabulucu:'Arabulucuya Başvurulacak',arabulucuBasvuruldu:'Arabuluculuğa Başvuruldu',davaacilacak:'Dava Açılacak',active:'İlk Derece',bam:'BAM',infaz:'İnfaz',urgent:'Acil',closed:'Kapalı'};
+  const map = {arabulucu:'bb',arabulucuBasvuruldu:'bb',davaacilacak:'bu',active:'ba',bam:'bp',yargitay:'bpur',infaz:'bc',urgent:'bu',closed:'bc'};
+  const lbl = {arabulucu:'Arabulucuya Başvurulacak',arabulucuBasvuruldu:'Arabuluculuğa Başvuruldu',davaacilacak:'Dava Açılacak',active:'İlk Derece',bam:'BAM',yargitay:'Yargıtay',infaz:'İnfaz',urgent:'Acil',closed:'Kapalı'};
   return `<span class="badge ${map[s]||'bc'}">${lbl[s]||s}</span>`;
 }
 
@@ -1798,11 +1772,11 @@ function resetCaseForm() {
   document.getElementById('c-tur').value='İşçilik Alacağı';
   document.getElementById('c-karar').value='';
   tmpDurusmalar = []; tmpMuzekkere = []; tmpGenelNotlar = []; tmpBilirkisi = [];
-  renderDurusmaList(); renderMuzList(); renderGenelNotList(); renderBilList();
+  renderDurusmaList(); renderMuzList(); renderGenelNotList(); renderBilList(); renderIcraList();
 }
 
 function fillCaseForm(c) {
-  tmpDurusmalar = []; tmpMuzekkere = []; tmpGenelNotlar = []; tmpBilirkisi = [];
+  resetCaseForm(); // önceki dosyadan alan sızmasını önle
   const set = (id, v) => { const el=document.getElementById(id); if(el&&v!==undefined&&v!==null) el.value=v; };
   const chk = (id, v) => { const el=document.getElementById(id); if(el) el.checked=!!v; };
   set('c-buro',c.buro); set('c-muv',c.muv); set('c-tel',c.tel);
@@ -1813,23 +1787,26 @@ function fillCaseForm(c) {
   set('c-dava-ac',c.davaAc); chk('c-dava-ac-bilgi',c.davaAcBilgi);
   set('c-zamanasimi', c.zamanasimi);
   set('c-delil-tarih',c.delilTarih); chk('c-delil-yapildi',c.delilYapildi);
+  set('c-tanik-tarih',c.tanikTarih); chk('c-tanik-yapildi',c.tanikYapildi);
   set('c-beyan-tarih',c.beyanTarih); chk('c-beyan-yapildi',c.beyanYapildi);
   set('c-gider-tarih',c.giderTarih); chk('c-gider-yapildi',c.giderYapildi);
   set('c-kesif-tarih',c.kesifTarih); chk('c-kesif-yapildi',c.kesifYapildi);
   chk('c-bil-gitti',c.bilGitti); chk('c-bil-dondu',c.bilDondu);
   set('c-bil-beyan-tarih',c.bilBeyanTarih); chk('c-bil-beyan-yapildi',c.bilBeyanYapildi);
-  chk('c-islah-yapilacak',c.islahYapilacak); set('c-islah-tarih',c.islahTarih);
+  chk('c-islah-yapilacak',c.islahYapilacak); chk('c-islah-yapilmayacak',c.islahYapilmayacak); set('c-islah-tarih',c.islahTarih);
   chk('c-islah-yapildi',c.islahYapildi); set('c-islah-not',c.islahNot);
-  set('c-gk-tarih',c.gkTarih); chk('c-gk-yazildi',c.gkYazildi);
-  chk('c-istinaf-yapilacak',c.istinafYapilacak); set('c-istinaf-tarih',c.istinafTarih);
-  chk('c-istinaf-yapildi',c.istinafYapildi);
+  set('c-gk-tarih',c.gkTarih); chk('c-gk-yazildi',c.gkYazildi); chk('c-gk-teblig',c.gkTeblig);
+  chk('c-istinaf-yapilacak',c.istinafYapilacak); chk('c-istinaf-edilmeyecek',c.istinafEdilmeyecek); set('c-istinaf-tarih',c.istinafTarih);
+  chk('c-istinaf-yapildi',c.istinafYapildi); set('c-istinaf-aciklama',c.istinafAciklama);
   set('c-kt-istinaf-tarih',c.ktIstinafTarih); chk('c-kt-istinaf-yapti',c.ktIstinafYapti);
-  chk('c-ihtar-gonderildi',c.ihtarGonderildi); set('c-ise-iade-tarih',c.iseIadeTarih);
-  chk('c-icra-yapildi',c.icraYapildi); set('c-icra-daire',c.icraDaire);
-  set('c-icra-esas',c.icraEsas); set('c-icra-teblig-tarih',c.icraTebligTarih);
-  chk('c-icra-teblig-yapildi',c.icraTebligYapildi); set('c-teminat-tarih',c.teminatTarih);
-  chk('c-teminat-yapildi',c.teminatYapildi); chk('c-icra-tahsil',c.icraTahsil);
-  set('c-icra-not',c.icraNot);
+  chk('c-ihtar-gonderildi',c.ihtarGonderildi); set('c-ise-iade-tarih',c.iseIadeTarih); set('c-teblig-serhi-tarih',c.tebligSerhiTarih);
+  fillIcraList((c.icraList && c.icraList.length) ? c.icraList :
+    ((c.icraDaire||c.icraEsas||c.icraTebligTarih||c.icraNot||c.icraYapildi||c.teminatTarih)
+      ? [{yapildi:c.icraYapildi||false,daire:c.icraDaire||'',esas:c.icraEsas||'',
+          tebligTarih:c.icraTebligTarih||'',tebligYapildi:c.icraTebligYapildi||false,
+          teminatTarih:c.teminatTarih||'',teminatYapildi:c.teminatYapildi||false,
+          tahsil:c.icraTahsil||false,not:c.icraNot||''}]
+      : []));
   set('c-guncel-durum',c.guncelDurum);
   set('c-not',c.not);
   tmpDurusmalar = JSON.parse(JSON.stringify(c.durusmalar||[]));
@@ -1842,6 +1819,7 @@ function fillCaseForm(c) {
 function readCaseForm() {
   const g = id => document.getElementById(id)?.value || '';
   const c = id => document.getElementById(id)?.checked || false;
+  const _icra = readIcraList(); const _i0 = _icra[0]||{};
   return {
     buro:g('c-buro'), muv:g('c-muv'), tel:g('c-tel'), karsitaraf:g('c-karsitaraf'),
     mahkeme:g('c-mahkeme'), esas:g('c-esas'), konu:g('c-konu'),
@@ -1861,10 +1839,11 @@ function readCaseForm() {
     istinafYapildi:c('c-istinaf-yapildi'), istinafAciklama:g('c-istinaf-aciklama'),
     ktIstinafTarih:g('c-kt-istinaf-tarih'), ktIstinafYapti:c('c-kt-istinaf-yapti'),
     ihtarGonderildi:c('c-ihtar-gonderildi'), iseIadeTarih:g('c-ise-iade-tarih'), tebligSerhiTarih:g('c-teblig-serhi-tarih'),
-    icraYapildi:c('c-icra-yapildi'), icraDaire:g('c-icra-daire'), icraEsas:g('c-icra-esas'),
-    icraTebligTarih:g('c-icra-teblig-tarih'), icraTebligYapildi:c('c-icra-teblig-yapildi'),
-    teminatTarih:g('c-teminat-tarih'), teminatYapildi:c('c-teminat-yapildi'),
-    icraTahsil:c('c-icra-tahsil'), icraNot:g('c-icra-not'), not:g('c-not'),
+    icraList: _icra,
+    icraYapildi:_i0.yapildi||false, icraDaire:_i0.daire||'', icraEsas:_i0.esas||'',
+    icraTebligTarih:_i0.tebligTarih||'', icraTebligYapildi:_i0.tebligYapildi||false,
+    teminatTarih:_i0.teminatTarih||'', teminatYapildi:_i0.teminatYapildi||false,
+    icraTahsil:_i0.tahsil||false, icraNot:_i0.not||'', not:g('c-not'), guncelDurum:g('c-guncel-durum'),
     durusmalar: JSON.parse(JSON.stringify(tmpDurusmalar)), muzekkere: JSON.parse(JSON.stringify(tmpMuzekkere)), genelNotlar: JSON.parse(JSON.stringify(tmpGenelNotlar)), bilirkisiList: readBilList()
   };
 }
@@ -2316,6 +2295,118 @@ function readBilList() {
   });
 }
 
+// İCRA ÇOKLU (DOM tabanlı — referans güvenli)
+function icraRowHtml(ic) {
+  ic = ic || {};
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <span style="font-size:12px;font-weight:600;color:var(--acc);" class="icra-baslik"></span>
+      <button class="ib" onclick="if(!confirm('Bu icra takibini silmek istediğinizden emin misiniz?')) return; this.closest('.icra-row').remove(); updateIcraEmpty(); renumberIcra();">🗑</button>
+    </div>
+    <div class="frow frow-3">
+      <div class="fg" style="display:flex;align-items:flex-end;">
+        <label class="fc-check" style="padding-bottom:2px;">
+          <input type="checkbox" class="icra-yapildi" ${ic.yapildi?'checked':''}>
+          <span>İcra takibi yapıldı</span>
+        </label>
+      </div>
+      <div class="fg"><label>İcra Dairesi</label><input class="fc icra-daire" placeholder="... İcra Müdürlüğü" value="${ic.daire||''}" oninput="this.value=toTitleCase(this.value)"></div>
+      <div class="fg"><label>İcra Esas No</label><input class="fc icra-esas" placeholder="2024/1234" value="${ic.esas||''}" oninput="formatEsas(this)" maxlength="20"></div>
+    </div>
+    <div class="frow frow-4">
+      <div class="fg"><label>Tebliğ Kontrol Tarihi</label><input type="date" class="fc icra-teblig-tarih" value="${ic.tebligTarih||''}"></div>
+      <div class="fg" style="display:flex;align-items:flex-end;">
+        <label class="fc-check" style="padding-bottom:2px;">
+          <input type="checkbox" class="icra-teblig-yapildi" ${ic.tebligYapildi?'checked':''}>
+          <span>Tebliğ edildi ✓</span>
+        </label>
+      </div>
+      <div class="fg"><label>Teminat Kontrol Tarihi</label><input type="date" class="fc icra-teminat-tarih" value="${ic.teminatTarih||''}"></div>
+      <div class="fg" style="display:flex;align-items:flex-end;">
+        <label class="fc-check" style="padding-bottom:2px;">
+          <input type="checkbox" class="icra-teminat-yapildi" ${ic.teminatYapildi?'checked':''}>
+          <span>Teminat yatırıldı ✓</span>
+        </label>
+      </div>
+    </div>
+    <div class="frow frow-2">
+      <div class="fg" style="display:flex;align-items:flex-end;">
+        <label class="fc-check" style="padding-bottom:2px;">
+          <input type="checkbox" class="icra-tahsil" ${ic.tahsil?'checked':''}>
+          <span>İcra dosyası tahsil edildi ✓</span>
+        </label>
+      </div>
+      <div class="fg"></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label>İcra Notları</label><textarea class="fc icra-not" placeholder="İcra ile ilgili notlar...">${ic.not||''}</textarea></div>
+    </div>`;
+}
+
+function renumberIcra() {
+  const rows = document.getElementById('icra-list')?.querySelectorAll('.icra-row') || [];
+  rows.forEach((r,i)=>{ const b=r.querySelector('.icra-baslik'); if(b) b.textContent=(i+1)+'. İcra Takibi'; });
+}
+
+function addIcra() {
+  const cont = document.getElementById('icra-list');
+  if(!cont) return;
+  const empty = cont.querySelector('.icra-empty');
+  if(empty) empty.remove();
+  const div = document.createElement('div');
+  div.className = 'icra-row';
+  div.style.cssText = 'background:var(--sur2);border:1px solid var(--brd);border-radius:8px;padding:12px;margin-bottom:10px;';
+  div.innerHTML = icraRowHtml();
+  cont.appendChild(div);
+  renumberIcra();
+}
+
+function updateIcraEmpty() {
+  const cont = document.getElementById('icra-list');
+  if(!cont) return;
+  if(!cont.querySelectorAll('.icra-row').length)
+    cont.innerHTML = '<div class="icra-empty txt-3" style="font-size:12px;padding:4px 0;">Henüz icra takibi eklenmedi.</div>';
+}
+
+function renderIcraList() {
+  const cont = document.getElementById('icra-list');
+  if(!cont) return;
+  cont.innerHTML = '<div class="icra-empty txt-3" style="font-size:12px;padding:4px 0;">Henüz icra takibi eklenmedi.</div>';
+}
+
+function fillIcraList(list) {
+  const cont = document.getElementById('icra-list');
+  if(!cont) return;
+  cont.innerHTML = '';
+  if(!list || !list.length) { renderIcraList(); return; }
+  list.forEach(function(ic) {
+    const div = document.createElement('div');
+    div.className = 'icra-row';
+    div.style.cssText = 'background:var(--sur2);border:1px solid var(--brd);border-radius:8px;padding:12px;margin-bottom:10px;';
+    div.innerHTML = icraRowHtml(ic);
+    cont.appendChild(div);
+  });
+  renumberIcra();
+}
+
+function readIcraList() {
+  const rows = document.getElementById('icra-list')?.querySelectorAll('.icra-row') || [];
+  return Array.from(rows).map(function(row) {
+    return {
+      id: 'icra-' + Date.now() + Math.random(),
+      yapildi: row.querySelector('.icra-yapildi')?.checked || false,
+      daire: row.querySelector('.icra-daire')?.value || '',
+      esas: row.querySelector('.icra-esas')?.value || '',
+      tebligTarih: row.querySelector('.icra-teblig-tarih')?.value || '',
+      tebligYapildi: row.querySelector('.icra-teblig-yapildi')?.checked || false,
+      teminatTarih: row.querySelector('.icra-teminat-tarih')?.value || '',
+      teminatYapildi: row.querySelector('.icra-teminat-yapildi')?.checked || false,
+      tahsil: row.querySelector('.icra-tahsil')?.checked || false,
+      not: row.querySelector('.icra-not')?.value || ''
+    };
+  });
+}
+
 // ZAMANAŞİMİ sayfası
 function renderZamanasimi() {
   const tbody = document.getElementById('zamanasimi-tbody');
@@ -2541,7 +2632,7 @@ function exportExcel() {
 function exportExcelCSV() {
   const statusLbl = {
     arabulucu:'Arabulucuya Başvurulacak', arabulucuBasvuruldu:'Arabuluculuğa Başvuruldu', davaacilacak:'Dava Açılacak',
-    active:'İlk Derece', bam:'BAM', infaz:'İnfaz', urgent:'Acil', closed:'Kapalı'
+    active:'İlk Derece', bam:'BAM', yargitay:'Yargıtay', infaz:'İnfaz', urgent:'Acil', closed:'Kapalı'
   };
   const headers = [
     'BÜRO NO','DURUMU','MÜVEKKİL ADI SOYADI','MÜVEKKİL TELEFONU',
@@ -2875,10 +2966,12 @@ function renderTodos() {
         return title.includes(searchVal) || note.includes(searchVal);
       });
     }
+  } else if(todoTimeFilter === -2) {
+    list = list.filter(t=>!t.done && t.due && daysDiff(t.due)<0);
   } else if(todoTimeFilter === 0) {
     list = list.filter(t=>!t.done && t.due && daysDiff(t.due)===0);
   } else if(todoTimeFilter < 999) {
-    list = list.filter(t=>!t.done && t.due && daysDiff(t.due)<=todoTimeFilter);
+    list = list.filter(t=>!t.done && t.due && daysDiff(t.due)>=0 && daysDiff(t.due)<=todoTimeFilter);
   } else {
     // Tümü — bekleyenler önce (geçmiş tarihler dahil)
     list = list.filter(t=>!t.done);
@@ -2886,9 +2979,12 @@ function renderTodos() {
   // Sıralama: acil/süreli iş önce, sonra tarihe göre
   const priO={urgent:0,high:1,reminder:2,normal:3};
   list.sort((a,b)=>{
-    const po = (priO[a.priority]||3)-(priO[b.priority]||3);
-    if(po!==0) return po;
-    if(a.due && b.due) return new Date(a.due)-new Date(b.due);
+    if(todoTimeFilter === 0) { // Bugün: öncelik sırası
+      const po = (priO[a.priority]||3)-(priO[b.priority]||3);
+      if(po!==0) return po;
+    }
+    // Diğer sekmeler: tarih yeniden → eskiye
+    if(a.due && b.due) return new Date(b.due)-new Date(a.due);
     if(a.due) return -1; if(b.due) return 1;
     return 0;
   });
