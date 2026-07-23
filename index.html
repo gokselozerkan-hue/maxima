@@ -155,7 +155,7 @@ textarea.fc{resize:vertical;min-height:70px;}
 .fc-check span{font-size:12.5px;color:var(--txt2);}
 
 /* MODAL */
-.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .2s;padding:16px;}
+.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .2s;padding:16px;}
 .moverlay.show{opacity:1;pointer-events:all;}
 .modal{background:var(--sur);border:1px solid var(--brd);border-radius:var(--rl);width:100%;max-width:820px;max-height:92vh;overflow-y:auto;transform:translateY(18px);transition:transform .2s;box-shadow:var(--shd);}
 .moverlay.show .modal{transform:translateY(0);}
@@ -217,7 +217,7 @@ textarea.fc{resize:vertical;min-height:70px;}
 .us-card-name{font-size:13px;font-weight:600;color:var(--txt);}
 
 /* ALARM */
-.alarm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:8000;opacity:0;pointer-events:none;transition:opacity .3s;}
+.alarm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:8000;opacity:0;pointer-events:none;transition:opacity .3s;}
 .alarm-overlay.show{opacity:1;pointer-events:all;}
 .alarm-box{background:var(--sur);border:2px solid var(--red);border-radius:var(--rl);padding:30px;max-width:440px;width:90%;text-align:center;box-shadow:0 0 50px rgba(224,92,92,.35);animation:apulse 1.2s infinite;}
 @keyframes apulse{0%,100%{box-shadow:0 0 40px rgba(224,92,92,.3)}50%{box-shadow:0 0 70px rgba(224,92,92,.6)}}
@@ -624,7 +624,7 @@ textarea.fc{resize:vertical;min-height:70px;}
         <div class="twrap">
           <div class="thead-row">
             <h3 id="zamanasimi-count">Yükleniyor...</h3>
-            <input class="sbox" id="za-search" placeholder="🔍 Ara..." oninput="renderZamanasimi()" style="width:200px;">
+            <input class="sbox" id="za-search" placeholder="🔍 Ara..." oninput="clearTimeout(window._zaT);window._zaT=setTimeout(renderZamanasimi,200)" style="width:200px;">
           </div>
           <table>
             <thead>
@@ -652,7 +652,7 @@ textarea.fc{resize:vertical;min-height:70px;}
             <option value="pending">Talep Bekleyen</option>
             <option value="done">Talep Karşılanan</option>
           </select>
-          <input class="sbox" id="call-search" placeholder="🔍 Ara..." oninput="renderCalls()" style="width:180px;">
+          <input class="sbox" id="call-search" placeholder="🔍 Ara..." oninput="clearTimeout(window._clT);window._clT=setTimeout(renderCalls,200)" style="width:180px;">
           <button class="btn btn-p" onclick="openCallModal()">+ Arama Ekle</button>
         </div>
       </div>
@@ -1200,6 +1200,7 @@ async function loadAllData() {
   chatMsgs = ch || []; users = u || [];
   if(s && s.theme) settings = {...settings, ...s};
   lastChatLen = chatMsgs.length;
+  invalidateDatesCache();
 }
 
 
@@ -1215,6 +1216,8 @@ let currentUser = null;
 let isAdmin = false; // Genel şifreyle giriş yapıldıysa true
 let editingCaseId = null;
 let caseFilter = 'all', caseSearch = '';
+let casesRenderLimit = 100;
+let caseSearchTimer = null;
 let calYear, calMonth, selDay = null;
 let remFilter = 7;
 
@@ -1232,8 +1235,7 @@ calMonth = now.getMonth();
 const TR_MONTHS = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
 
 function save() {
-  // Sunucu versiyonunda veri sync fonksiyonlarıyla kaydedilir
-  // Hızlı işlemler için lokal kopyalar güncellenir, arka planda sync yapılır
+  invalidateDatesCache();
   syncToServer();
 }
 
@@ -1244,7 +1246,7 @@ function syncToServer() {
   syncTimer = setTimeout(async () => {
     try {
       await Promise.all([
-        API.put('cases', null, JSON.parse(JSON.stringify(cases))),
+        API.put('cases', null, cases),
         API.put('events', null, events),
         API.put('todos', null, todos),
         API.put('calls', null, calls),
@@ -1352,9 +1354,10 @@ function selectUser(idx) {
   if(!isAdmin && adminBtn) adminBtn.title = '';
   document.getElementById('sidebar-av').textContent = getInitials(currentUser);
   document.getElementById('today-lbl').textContent = now.toLocaleDateString('tr-TR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  // Eski auto event'leri temizle (artık getAllDates'ten okunuyor)
+  // Eski auto event'leri temizle (değişiklik yoksa sunucuya yükleme yapma)
+  const _evLen = events.length;
   events = events.filter(e=>!e.auto);
-  save();
+  if(events.length !== _evLen) save();
   updateStats();
   renderRecentCases();
   renderDashboardUpcoming();
@@ -1564,7 +1567,10 @@ function renderRecentCases() {
 // =========================================================
 // ALL DATES (from cases + events)
 // =========================================================
+let _allDatesCache = null;
+function invalidateDatesCache() { _allDatesCache = null; }
 function getAllDates() {
+  if(_allDatesCache) return _allDatesCache;
   const result = [];
   // Events
   events.forEach(e => {
@@ -1618,6 +1624,7 @@ function getAllDates() {
       });
     }
   });
+  _allDatesCache = result;
   return result;
 }
 
@@ -1674,6 +1681,8 @@ function renderCasesTable() {
   });
   if(!list.length){ tb.innerHTML='<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--txt3)">Sonuç bulunamadı</td></tr>'; return; }
   const kararLbl = {kabul:'Kabul',red:'Red',kismi:'Kısmi'};
+  const totalCount = list.length;
+  list = list.slice(0, casesRenderLimit);
   tb.innerHTML = list.map(c=>{
     const nextDate = getNextDate(c);
     const nextLbl = nextDate ? `<span class="${daysDiff(nextDate)<=3?'txt-red':daysDiff(nextDate)<=7?'txt-acc':''} mono" style="font-size:11px;">${fmtDate(nextDate)}</span>` : '—';
@@ -1693,7 +1702,11 @@ function renderCasesTable() {
         <button class="ib" onclick="event.stopPropagation();deleteCase('${c.id}')">🗑</button>
       </div></td>
     </tr>`;
-  }).join('');
+  }).join('') + (totalCount > casesRenderLimit
+    ? `<tr><td colspan="11" style="text-align:center;padding:10px;">
+        <button class="btn btn-s btn-sm" onclick="casesRenderLimit+=200;renderCasesTable()">▼ Daha Fazla Göster (${totalCount - casesRenderLimit} dava daha)</button>
+       </td></tr>`
+    : '');
 }
 
 function getNextDate(c) {
@@ -1706,12 +1719,16 @@ function getNextDate(c) {
 }
 
 function filterCases(f, el) {
-  caseFilter = f;
+  caseFilter = f; casesRenderLimit = 100;
   document.querySelectorAll('.tabs .tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   renderCasesTable();
 }
-function searchCases(v) { caseSearch = v; renderCasesTable(); }
+function searchCases(v) {
+  caseSearch = v; casesRenderLimit = 100;
+  clearTimeout(caseSearchTimer);
+  caseSearchTimer = setTimeout(renderCasesTable, 200);
+}
 function fmtDate(d) {
   if(!d) return '—';
   try {
@@ -3074,6 +3091,7 @@ function renderChatUsers() {
 }
 
 async function updateChatBadge() {
+  if(document.hidden) return; // pencere arka plandayken sunucuyu yorma
   const stored = await API.get('chat');
   if(stored.length > lastChatLen) {
     const newMsgs = stored.slice(lastChatLen);
@@ -3096,7 +3114,7 @@ async function updateChatBadge() {
 
 function startChatSync() {
   if(chatInterval) clearInterval(chatInterval);
-  chatInterval = setInterval(updateChatBadge, 2000);
+  chatInterval = setInterval(updateChatBadge, 5000);
 }
 
 function escHtml(s) {
