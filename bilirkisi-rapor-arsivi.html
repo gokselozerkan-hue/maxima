@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bilirkişi Rapor Arşivi</title>
+<style>
+  :root{
+    --paper:#F7F6F2;
+    --card:#FFFFFF;
+    --ink:#1E2732;
+    --muted:#6B7280;
+    --line:#DCD9D0;
+    --navy:#24435C;
+    --navy-dark:#1A3247;
+    --seal:#8C2B2B;
+    --hover:#EEF2F6;
+    --ok:#2F6B3A;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+    font-size:15px;
+    line-height:1.5;
+  }
+  h1,h2,h3,.tab{font-family:Georgia,"Times New Roman",serif}
+
+  /* ---------- Üst bant ---------- */
+  header{
+    background:var(--navy);
+    color:#fff;
+    padding:14px 24px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  header h1{font-size:20px;font-weight:600;letter-spacing:.4px}
+  header h1 span{color:#C9A227;font-weight:400}
+  .hdr-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+  /* ---------- Sekmeler ---------- */
+  nav{
+    background:var(--card);
+    border-bottom:2px solid var(--line);
+    display:flex;
+    gap:4px;
+    padding:0 16px;
+    overflow-x:auto;
+  }
+  .tab{
+    background:none;border:none;cursor:pointer;
+    padding:12px 16px;font-size:15px;color:var(--muted);
+    border-bottom:3px solid transparent;white-space:nowrap;
+  }
+  .tab:hover{color:var(--ink)}
+  .tab.active{color:var(--seal);border-bottom-color:var(--seal);font-weight:600}
+
+  main{max-width:1100px;margin:0 auto;padding:24px 16px 80px}
+  .view{display:none}
+  .view.active{display:block}
+
+  /* ---------- Butonlar ---------- */
+  button{font-family:inherit}
+  .btn{
+    padding:8px 16px;border-radius:4px;border:1px solid var(--line);
+    background:var(--card);color:var(--ink);cursor:pointer;font-size:14px;
+  }
+  .btn:hover{background:var(--hover)}
+  .btn-primary{background:var(--seal);border-color:var(--seal);color:#fff;font-weight:600}
+  .btn-primary:hover{background:#6E2222}
+  .btn-navy{background:var(--navy);border-color:var(--navy);color:#fff}
+  .btn-navy:hover{background:var(--navy-dark)}
+  .btn-sm{padding:4px 10px;font-size:13px}
+  .btn-danger{color:var(--seal)}
+  .btn:focus-visible,.tab:focus-visible,input:focus-visible,textarea:focus-visible{
+    outline:2px solid var(--navy);outline-offset:1px;
+  }
+
+  /* ---------- Liste tabloları ---------- */
+  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+  .toolbar h2{font-size:22px;color:var(--navy)}
+  .search{
+    padding:8px 12px;border:1px solid var(--line);border-radius:4px;
+    font-size:14px;min-width:220px;font-family:inherit;
+  }
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line)}
+  th{
+    text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.6px;
+    color:var(--muted);padding:10px 12px;border-bottom:2px solid var(--line);background:#FBFAF7;
+  }
+  td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;font-size:14px}
+  tbody tr{cursor:pointer}
+  tbody tr:hover{background:var(--hover)}
+  td.actions{white-space:nowrap;text-align:right}
+  .empty{
+    padding:40px;text-align:center;color:var(--muted);
+    background:var(--card);border:1px dashed var(--line);border-radius:4px;
+  }
+
+  /* ---------- Form ---------- */
+  .form-card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:20px}
+  .field{margin-bottom:16px}
+  .field label{
+    display:block;font-size:12px;font-weight:700;letter-spacing:.8px;
+    color:var(--navy);margin-bottom:5px;text-transform:uppercase;
+  }
+  .field input,.field textarea{
+    width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:3px;
+    font-family:inherit;font-size:14px;background:#FDFDFB;color:var(--ink);
+  }
+  .field textarea{min-height:90px;resize:vertical}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 20px}
+  @media(max-width:700px){.grid-2,.grid-3{grid-template-columns:1fr}}
+  .form-foot{
+    display:flex;justify-content:flex-end;gap:10px;margin-top:8px;
+    position:sticky;bottom:0;background:var(--card);padding:12px 0 4px;border-top:1px solid var(--line);
+  }
+
+  /* ---------- Parametre tabloları ---------- */
+  .param-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:800px){.param-grid{grid-template-columns:1fr}}
+  .param-card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:16px}
+  .param-card h3{font-size:16px;color:var(--navy);margin-bottom:10px;border-bottom:2px solid var(--seal);padding-bottom:6px;display:inline-block}
+  .param-card table{border:none}
+  .param-card td{padding:6px 8px}
+  .param-card input{
+    width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:3px;
+    font-family:inherit;font-size:14px;
+  }
+
+  /* ---------- Yaklaşımlar ---------- */
+  .approach{background:var(--card);border:1px solid var(--line);border-radius:4px;margin-bottom:12px}
+  .approach summary{
+    cursor:pointer;padding:12px 16px;font-weight:600;color:var(--navy);
+    font-family:Georgia,serif;font-size:15px;list-style:none;display:flex;justify-content:space-between;align-items:center;
+  }
+  .approach summary::after{content:"▾";color:var(--muted);transition:transform .15s}
+  .approach[open] summary::after{transform:rotate(180deg)}
+  .approach .body{padding:0 16px 16px}
+  .approach textarea{
+    width:100%;min-height:110px;padding:9px 11px;border:1px solid var(--line);
+    border-radius:3px;font-family:inherit;font-size:14px;resize:vertical;background:#FDFDFB;
+  }
+  .approach.filled summary{border-left:3px solid var(--ok);padding-left:13px}
+
+  /* ---------- Bildirim ---------- */
+  #toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+    background:var(--ink);color:#fff;padding:10px 20px;border-radius:4px;
+    font-size:14px;opacity:0;transition:all .25s;pointer-events:none;z-index:99;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .note{font-size:13px;color:var(--muted);margin-top:10px}
+  @media print{header,nav,.toolbar,.form-foot,.btn{display:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Bilirkişi Rapor Arşivi <span>· Av. Göksel Özerkan</span></h1>
+  <div class="hdr-actions">
+    <button class="btn btn-navy btn-sm" onclick="exportData()">⬇ Yedekle</button>
+    <button class="btn btn-navy btn-sm" onclick="document.getElementById('importFile').click()">⬆ Yükle</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+</header>
+
+<nav>
+  <button class="tab active" data-view="raporlar" onclick="showView('raporlar')">Raporlar</button>
+  <button class="tab" data-view="kararlar" onclick="showView('kararlar')">Yargıtay ve BAM Kararları</button>
+  <button class="tab" data-view="parametreler" onclick="showView('parametreler')">Hesaplama Parametreleri</button>
+  <button class="tab" data-view="yaklasimlar" onclick="showView('yaklasimlar')">Hesaplama Yaklaşımları</button>
+</nav>
+
+<main>
+
+<!-- ============ RAPOR LİSTESİ ============ -->
+<section id="view-raporlar" class="view active">
+  <div class="toolbar">
+    <h2>Raporlar</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input class="search" id="raporSearch" placeholder="Mahkeme, esas no veya talep ara…" oninput="renderRaporList()">
+      <button class="btn btn-primary" onclick="openRaporForm()">+ Yeni Rapor</button>
+    </div>
+  </div>
+  <div id="raporListWrap"></div>
+</section>
+
+<!-- ============ RAPOR FORMU ============ -->
+<section id="view-raporForm" class="view">
+  <div class="toolbar">
+    <h2 id="raporFormTitle">Yeni Rapor</h2>
+    <button class="btn" onclick="showView('raporlar')">← Listeye Dön</button>
+  </div>
+  <div class="form-card">
+    <div class="grid-3">
+      <div class="field"><label>Mahkeme Adı</label><input id="f_mahkeme"></div>
+      <div class="field"><label>Esas No</label><input id="f_esas"></div>
+      <div class="field"><label>Teslim Süresi</label><input id="f_teslim"></div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>Arabuluculuk</label><textarea id="f_arabuluculuk"></textarea></div>
+      <div class="field"><label>Dava Tarihi</label><textarea id="f_davaTarihi"></textarea></div>
+    </div>
+    <div class="field"><label>Talep</label><textarea id="f_talep"></textarea></div>
+    <div class="field"><label>Belge ve Deliller</label><textarea id="f_belgeler"></textarea></div>
+    <div class="field"><label>Zamanaşımı</label><textarea id="f_zamanasimi"></textarea></div>
+    <div class="field"><label>Çalışma Süresi</label><textarea id="f_calismaSuresi"></textarea></div>
+    <div class="field"><label>Tanık Beyanları</label><textarea id="f_tanik"></textarea></div>
+    <div class="field"><label>Netleştirilecekler</label><textarea id="f_netlestirilecekler"></textarea></div>
+    <div class="field"><label>Hesaplama Esasları</label><textarea id="f_hesaplamaEsaslari"></textarea></div>
+    <div class="field"><label>Genel Not</label><textarea id="f_genelNot"></textarea></div>
+    <div class="form-foot">
+      <button class="btn" onclick="showView('raporlar')">Vazgeç</button>
+      <button class="btn btn-primary" onclick="saveRapor()">💾 Kaydet</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ KARARLAR ============ -->
+<section id="view-kararlar" class="view">
+  <div class="toolbar">
+    <h2>Yargıtay ve BAM Kararları</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input class="search" id="kararSearch" placeholder="Konu, daire veya içerik ara…" oninput="renderKararList()">
+      <button class="btn btn-primary" onclick="openKararForm()">+ Yeni Karar</button>
+    </div>
+  </div>
+  <div id="kararListWrap"></div>
+</section>
+
+<section id="view-kararForm" class="view">
+  <div class="toolbar">
+    <h2 id="kararFormTitle">Yeni Karar</h2>
+    <button class="btn" onclick="showView('kararlar')">← Listeye Dön</button>
+  </div>
+  <div class="form-card">
+    <div class="grid-3">
+      <div class="field"><label>Konu</label><input id="k_konu"></div>
+      <div class="field"><label>Daire</label><input id="k_daire"></div>
+      <div class="field"><label>Esas No</label><input id="k_esas"></div>
+    </div>
+    <div class="field"><label>İçerik</label><textarea id="k_icerik" style="min-height:160px"></textarea></div>
+    <div class="field"><label>Özet</label><textarea id="k_ozet"></textarea></div>
+    <div class="form-foot">
+      <button class="btn" onclick="showView('kararlar')">Vazgeç</button>
+      <button class="btn btn-primary" onclick="saveKarar()">💾 Kaydet</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PARAMETRELER ============ -->
+<section id="view-parametreler" class="view">
+  <div class="toolbar">
+    <h2>Hesaplama Parametreleri</h2>
+    <button class="btn btn-primary" onclick="saveParams()">💾 Kaydet</button>
+  </div>
+  <div class="param-grid">
+    <div class="param-card">
+      <h3>Yıllara Göre Yemek Bedeli</h3>
+      <table><tbody id="p_yemek"></tbody></table>
+      <button class="btn btn-sm" onclick="addParamRow('yemek')">+ Satır Ekle</button>
+    </div>
+    <div class="param-card">
+      <h3>Yıllara Göre Ulaşım Bedeli</h3>
+      <table><tbody id="p_ulasim"></tbody></table>
+      <button class="btn btn-sm" onclick="addParamRow('ulasim')">+ Satır Ekle</button>
+    </div>
+    <div class="param-card">
+      <h3>Yıllara Göre Asgari Ücret</h3>
+      <table><tbody id="p_asgari"></tbody></table>
+      <button class="btn btn-sm" onclick="addParamRow('asgari')">+ Satır Ekle</button>
+    </div>
+    <div class="param-card">
+      <h3>Yıllara Göre Kıdem Tazminatı Tavanı</h3>
+      <table><tbody id="p_kidemTavan"></tbody></table>
+      <button class="btn btn-sm" onclick="addParamRow('kidemTavan')">+ Satır Ekle</button>
+    </div>
+  </div>
+  <p class="note">Her satırda dönem/yıl bilgisi ile tutarı serbest metin olarak girebilirsiniz (ör. "01.01.2026 – 30.06.2026" / "…TL brüt").</p>
+</section>
+
+<!-- ============ YAKLAŞIMLAR ============ -->
+<section id="view-yaklasimlar" class="view">
+  <div class="toolbar">
+    <h2>Hesaplama Yaklaşımları</h2>
+    <button class="btn btn-primary" onclick="saveYaklasimlar()">💾 Kaydet</button>
+  </div>
+  <div id="yaklasimWrap"></div>
+</section>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+/* =================== VERİ =================== */
+const STORAGE_KEY = "bilirkisiArsiv_v1";
+const PARAM_KEYS = ["yemek","ulasim","asgari","kidemTavan"];
+const YAKLASIM_BOLUMLERI = [
+  "Çalışma Süresi","Kıdem Tazminatı","İhbar Tazminatı","Ücret","Fazla Çalışma Ücreti",
+  "Hafta Tatili Ücreti","UBGT Ücreti","Yıllık İzin Ücreti","Boşta Geçen Süre Ücreti",
+  "İş Güvencesi Tazminatı","Sendikal Tazminat","Kötü Niyet Tazminatı",
+  "Ayrımcılık Tazminatı","Bakiye Süre Ücreti"
+];
+
+let db = load();
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return {
+    raporlar: [],
+    kararlar: [],
+    parametreler: {yemek:[],ulasim:[],asgari:[],kidemTavan:[]},
+    yaklasimlar: {}
+  };
+}
+function persist(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+}
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.classList.add("show");
+  clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove("show"),2200);
+}
+function esc(s){
+  return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function shorten(s,n){s=String(s??"");return s.length>n?s.slice(0,n)+"…":s;}
+
+/* =================== GÖRÜNÜM =================== */
+function showView(name){
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  document.getElementById("view-"+name).classList.add("active");
+  document.querySelectorAll(".tab").forEach(t=>{
+    const target = t.dataset.view;
+    const owner = name.startsWith("rapor") ? "raporlar" : name.startsWith("karar") ? "kararlar" : name;
+    t.classList.toggle("active", target===owner);
+  });
+  window.scrollTo(0,0);
+}
+
+/* =================== RAPORLAR =================== */
+const RAPOR_ALANLAR = ["mahkeme","esas","teslim","arabuluculuk","davaTarihi","talep","belgeler",
+  "zamanasimi","calismaSuresi","tanik","netlestirilecekler","hesaplamaEsaslari","genelNot"];
+let editingRaporId = null;
+
+function renderRaporList(){
+  const q=(document.getElementById("raporSearch").value||"").toLocaleLowerCase("tr");
+  const items = db.raporlar.filter(r=>{
+    if(!q) return true;
+    return [r.mahkeme,r.esas,r.talep,r.genelNot].join(" ").toLocaleLowerCase("tr").includes(q);
+  });
+  const wrap=document.getElementById("raporListWrap");
+  if(items.length===0){
+    wrap.innerHTML='<div class="empty">Henüz rapor yok. "+ Yeni Rapor" ile ilk kaydınızı oluşturun.</div>';
+    return;
+  }
+  let html='<table><thead><tr><th>Mahkeme Adı</th><th>Esas No</th><th>Talep</th><th>Teslim Süresi</th><th>Genel Not</th><th></th></tr></thead><tbody>';
+  items.forEach(r=>{
+    html+=`<tr onclick="openRaporForm('${r.id}')">
+      <td><strong>${esc(r.mahkeme)}</strong></td>
+      <td>${esc(r.esas)}</td>
+      <td>${esc(shorten(r.talep,80))}</td>
+      <td>${esc(r.teslim)}</td>
+      <td>${esc(shorten(r.genelNot,80))}</td>
+      <td class="actions">
+        <button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deleteRapor('${r.id}')">Sil</button>
+      </td></tr>`;
+  });
+  wrap.innerHTML=html+"</tbody></table>";
+}
+function openRaporForm(id){
+  editingRaporId = id||null;
+  const r = id ? db.raporlar.find(x=>x.id===id) : null;
+  document.getElementById("raporFormTitle").textContent =
+    r ? (r.mahkeme||"Rapor") + (r.esas? " · "+r.esas : "") : "Yeni Rapor";
+  RAPOR_ALANLAR.forEach(a=>{
+    document.getElementById("f_"+a).value = r ? (r[a]||"") : "";
+  });
+  showView("raporForm");
+}
+function saveRapor(){
+  const data={};
+  RAPOR_ALANLAR.forEach(a=>data[a]=document.getElementById("f_"+a).value.trim());
+  if(!data.mahkeme && !data.esas){toast("En az Mahkeme Adı veya Esas No giriniz.");return;}
+  if(editingRaporId){
+    const r=db.raporlar.find(x=>x.id===editingRaporId);
+    Object.assign(r,data);
+  }else{
+    data.id="r"+Date.now();
+    db.raporlar.unshift(data);
+  }
+  persist();
+  renderRaporList();
+  toast("Rapor kaydedildi ✓");
+  showView("raporlar");
+}
+function deleteRapor(id){
+  const r=db.raporlar.find(x=>x.id===id);
+  if(!confirm(`"${r.mahkeme||""} ${r.esas||""}" kaydı silinsin mi?`))return;
+  db.raporlar=db.raporlar.filter(x=>x.id!==id);
+  persist();renderRaporList();toast("Rapor silindi");
+}
+
+/* =================== KARARLAR =================== */
+const KARAR_ALANLAR=["konu","daire","esas","icerik","ozet"];
+let editingKararId=null;
+
+function renderKararList(){
+  const q=(document.getElementById("kararSearch").value||"").toLocaleLowerCase("tr");
+  const items=db.kararlar.filter(k=>{
+    if(!q)return true;
+    return [k.konu,k.daire,k.esas,k.icerik,k.ozet].join(" ").toLocaleLowerCase("tr").includes(q);
+  });
+  const wrap=document.getElementById("kararListWrap");
+  if(items.length===0){
+    wrap.innerHTML='<div class="empty">Henüz karar kaydı yok. "+ Yeni Karar" ile ekleyin.</div>';
+    return;
+  }
+  let html='<table><thead><tr><th>Konu</th><th>Daire</th><th>Esas No</th><th>Özet</th><th></th></tr></thead><tbody>';
+  items.forEach(k=>{
+    html+=`<tr onclick="openKararForm('${k.id}')">
+      <td><strong>${esc(k.konu)}</strong></td>
+      <td>${esc(k.daire)}</td>
+      <td>${esc(k.esas)}</td>
+      <td>${esc(shorten(k.ozet,100))}</td>
+      <td class="actions">
+        <button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deleteKarar('${k.id}')">Sil</button>
+      </td></tr>`;
+  });
+  wrap.innerHTML=html+"</tbody></table>";
+}
+function openKararForm(id){
+  editingKararId=id||null;
+  const k=id?db.kararlar.find(x=>x.id===id):null;
+  document.getElementById("kararFormTitle").textContent = k ? (k.konu||"Karar") : "Yeni Karar";
+  KARAR_ALANLAR.forEach(a=>document.getElementById("k_"+a).value = k?(k[a]||""):"");
+  showView("kararForm");
+}
+function saveKarar(){
+  const data={};
+  KARAR_ALANLAR.forEach(a=>data[a]=document.getElementById("k_"+a).value.trim());
+  if(!data.konu && !data.esas){toast("En az Konu veya Esas No giriniz.");return;}
+  if(editingKararId){
+    Object.assign(db.kararlar.find(x=>x.id===editingKararId),data);
+  }else{
+    data.id="k"+Date.now();
+    db.kararlar.unshift(data);
+  }
+  persist();renderKararList();toast("Karar kaydedildi ✓");showView("kararlar");
+}
+function deleteKarar(id){
+  const k=db.kararlar.find(x=>x.id===id);
+  if(!confirm(`"${k.konu||k.esas||"Karar"}" kaydı silinsin mi?`))return;
+  db.kararlar=db.kararlar.filter(x=>x.id!==id);
+  persist();renderKararList();toast("Karar silindi");
+}
+
+/* =================== PARAMETRELER =================== */
+function renderParams(){
+  PARAM_KEYS.forEach(key=>{
+    const tbody=document.getElementById("p_"+key);
+    const rows=db.parametreler[key]||[];
+    let html="";
+    rows.forEach((row,i)=>{
+      html+=`<tr>
+        <td style="width:45%"><input placeholder="Yıl / Dönem" value="${esc(row.yil)}" data-key="${key}" data-i="${i}" data-f="yil"></td>
+        <td><input placeholder="Tutar" value="${esc(row.deger)}" data-key="${key}" data-i="${i}" data-f="deger"></td>
+        <td style="width:1%"><button class="btn btn-sm btn-danger" onclick="removeParamRow('${key}',${i})">✕</button></td>
+      </tr>`;
+    });
+    if(rows.length===0) html='<tr><td colspan="3" style="color:var(--muted)">Kayıt yok.</td></tr>';
+    tbody.innerHTML=html;
+  });
+}
+function addParamRow(key){
+  syncParamInputs();
+  db.parametreler[key].push({yil:"",deger:""});
+  renderParams();
+}
+function removeParamRow(key,i){
+  syncParamInputs();
+  db.parametreler[key].splice(i,1);
+  renderParams();
+}
+function syncParamInputs(){
+  document.querySelectorAll('#view-parametreler input[data-key]').forEach(inp=>{
+    db.parametreler[inp.dataset.key][inp.dataset.i][inp.dataset.f]=inp.value;
+  });
+}
+function saveParams(){
+  syncParamInputs();
+  persist();
+  toast("Parametreler kaydedildi ✓");
+}
+
+/* =================== YAKLAŞIMLAR =================== */
+function renderYaklasimlar(){
+  const wrap=document.getElementById("yaklasimWrap");
+  let html="";
+  YAKLASIM_BOLUMLERI.forEach((b,i)=>{
+    const val=db.yaklasimlar[b]||"";
+    html+=`<details class="approach ${val?'filled':''}">
+      <summary>${esc(b)}</summary>
+      <div class="body"><textarea data-bolum="${esc(b)}">${esc(val)}</textarea></div>
+    </details>`;
+  });
+  wrap.innerHTML=html;
+}
+function saveYaklasimlar(){
+  document.querySelectorAll("#yaklasimWrap textarea").forEach(t=>{
+    db.yaklasimlar[t.dataset.bolum]=t.value.trim();
+  });
+  persist();
+  renderYaklasimlar();
+  toast("Yaklaşımlar kaydedildi ✓");
+}
+
+/* =================== YEDEKLEME =================== */
+function exportData(){
+  // Kaydedilmemiş parametre/yaklaşım girişlerini de al
+  try{syncParamInputs();}catch(e){}
+  document.querySelectorAll("#yaklasimWrap textarea").forEach(t=>{
+    db.yaklasimlar[t.dataset.bolum]=t.value.trim();
+  });
+  persist();
+  const blob=new Blob([JSON.stringify(db,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  const d=new Date();
+  const tarih=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  a.href=URL.createObjectURL(blob);
+  a.download="bilirkisi-arsiv-yedek-"+tarih+".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("Yedek dosyası indirildi ✓");
+}
+function importData(ev){
+  const file=ev.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const data=JSON.parse(reader.result);
+      if(!data.raporlar || !data.parametreler) throw new Error("format");
+      if(!confirm("Yedek yüklenecek ve mevcut veriler bu yedekle DEĞİŞTİRİLECEK. Devam edilsin mi?"))return;
+      db=data;
+      PARAM_KEYS.forEach(k=>{if(!db.parametreler[k])db.parametreler[k]=[];});
+      if(!db.kararlar)db.kararlar=[];
+      if(!db.yaklasimlar)db.yaklasimlar={};
+      persist();
+      renderRaporList();renderKararList();renderParams();renderYaklasimlar();
+      toast("Yedek başarıyla yüklendi ✓");
+    }catch(e){
+      alert("Dosya okunamadı. Geçerli bir yedek (.json) dosyası seçtiğinizden emin olun.");
+    }
+  };
+  reader.readAsText(file,"utf-8");
+  ev.target.value="";
+}
+
+/* =================== BAŞLAT =================== */
+renderRaporList();
+renderKararList();
+renderParams();
+renderYaklasimlar();
+</script>
+</body>
+</html>
