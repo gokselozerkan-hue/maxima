@@ -100,6 +100,9 @@ const server = http.createServer(async(req,res)=>{
   if(pathname==='/'||pathname==='/index.html')
     return serveFile(res,path.join(__dirname,'index.html'));
 
+  if(pathname==='/bilirkisi'||pathname==='/bilirkisi.html')
+    return serveFile(res,path.join(__dirname,'bilirkisi.html'));
+  
   // PWA + patch statik dosyalar
   const staticFiles = ['/manifest.json','/sw.js','/icon-192.png','/icon-512.png','/patch.js'];
   if(staticFiles.includes(pathname))
