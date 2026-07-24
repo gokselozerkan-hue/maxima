@@ -551,6 +551,7 @@ textarea.fc{resize:vertical;min-height:70px;}
           <div class="tab" onclick="filterCases('infaz',this)">İnfaz</div>
           <div class="tab" onclick="filterCases('closed',this)">Kapalı</div>
           <div class="tab" onclick="filterCases('urgent',this)">Acil</div>
+          <div class="tab" onclick="filterCases('incelenmemis',this)">📋 İncelenmemiş</div>
         </div>
         <div class="twrap">
           <div class="thead-row">
@@ -558,7 +559,7 @@ textarea.fc{resize:vertical;min-height:70px;}
             <input class="sbox" placeholder="🔍 Büro no, müvekkil, telefon, karşı taraf..." oninput="searchCases(this.value)" style="width:280px;">
           </div>
           <table>
-            <thead><tr><th>Büro No</th><th>Telefon</th><th>Müvekkil</th><th>Karşı Taraf</th><th>Mahkeme</th><th>Esas No</th><th>Konu</th><th>Durum</th><th>Sonraki Tarih</th><th>Karar</th><th></th></tr></thead>
+            <thead><tr><th>Büro No</th><th>Telefon</th><th>Müvekkil</th><th>Karşı Taraf</th><th>Mahkeme</th><th>Esas No</th><th>Konu</th><th>Durum</th><th>Sonraki Tarih</th><th>Karar</th><th>İnceleme</th><th></th></tr></thead>
             <tbody id="cases-tbody"></tbody>
           </table>
         </div>
@@ -890,7 +891,7 @@ textarea.fc{resize:vertical;min-height:70px;}
       <!-- GİDER AVANSI -->
       <div class="div-title">Gider Avansı</div>
       <div class="frow frow-3">
-        <div class="fg"><label>Yatırılacak Son Gün</label><input type="date" class="fc" id="c-gider-tarih"></div>
+        <div class="fg"><label>Yatırılacak Son Gün</label><input type="date" class="fc" id="c-gider-tarih" onchange="handleDateField(this,'Gider Avansı Yatırma Son Gün')"></div>
         <div class="fg" style="display:flex;align-items:flex-end;">
           <label class="fc-check" style="padding-bottom:2px;">
             <input type="checkbox" id="c-gider-yapildi">
@@ -1234,25 +1235,26 @@ calMonth = now.getMonth();
 
 const TR_MONTHS = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
 
-function save() {
+let _dirtyKeys = new Set();
+function save(...keys) {
   invalidateDatesCache();
+  // Hangi veri değiştiyse sadece onu sunucuya yaz — diğer bilgisayarlardaki
+  // eski kopyaların başka verilerin üzerine yazmasını (veri kaybını) önler
+  if(keys.length) keys.forEach(k => _dirtyKeys.add(k));
+  else ['cases','events','todos','calls','logs'].forEach(k => _dirtyKeys.add(k));
   syncToServer();
 }
 
 let syncTimer = null;
 function syncToServer() {
-  // Debounce — 500ms sonra sync yap
   clearTimeout(syncTimer);
   syncTimer = setTimeout(async () => {
+    const keys = Array.from(_dirtyKeys);
+    _dirtyKeys.clear();
+    const src = { cases: () => cases, events: () => events, todos: () => todos, calls: () => calls, logs: () => logs.slice(-500) };
     try {
-      await Promise.all([
-        API.put('cases', null, cases),
-        API.put('events', null, events),
-        API.put('todos', null, todos),
-        API.put('calls', null, calls),
-        API.put('logs', null, logs.slice(-500)),
-      ]);
-    } catch(e) { console.warn('Sync error:', e); }
+      await Promise.all(keys.filter(k => src[k]).map(k => API.put(k, null, src[k]())));
+    } catch(e) { console.warn('Sync error:', e); keys.forEach(k => _dirtyKeys.add(k)); }
   }, 500);
 }
 
@@ -1266,7 +1268,7 @@ async function saveUsers() {
 
 function addLog(action, detail) {
   logs.push({ ts: new Date().toISOString(), user: currentUser || '?', action, detail });
-  save();
+  save('logs');
 }
 
 // =========================================================
@@ -1357,7 +1359,7 @@ function selectUser(idx) {
   // Eski auto event'leri temizle (değişiklik yoksa sunucuya yükleme yapma)
   const _evLen = events.length;
   events = events.filter(e=>!e.auto);
-  if(events.length !== _evLen) save();
+  if(events.length !== _evLen) save('events');
   updateStats();
   renderRecentCases();
   renderDashboardUpcoming();
@@ -1508,8 +1510,8 @@ function goPage(id, el) {
   if(id==='reminders') renderReminders();
   if(id==='log') renderLog();
   if(id==='zamanasimi') renderZamanasimi();
-  if(id==='calls') { renderCalls(); updateCallsBadge(); }
-  if(id==='todo') { renderTodos(); populateTodoFilterUser(); }
+  if(id==='calls') { renderCalls(); updateCallsBadge(); API.get('calls').then(d=>{ if(Array.isArray(d)){ calls=d; renderCalls(); updateCallsBadge(); } }).catch(()=>{}); }
+  if(id==='todo') { renderTodos(); populateTodoFilterUser(); API.get('todos').then(d=>{ if(Array.isArray(d)){ todos=d; invalidateDatesCache(); renderTodos(); updateTodoBadge(); } }).catch(()=>{}); }
   if(id==='chat') {
     // Chat mesajları zaten API'den yüklendi
     lastChatLen = chatMsgs.length;
@@ -1655,6 +1657,7 @@ function renderUpItem(d) {
 // =========================================================
 // CASES TABLE
 // =========================================================
+const STATUS_LBL = {arabulucu:'Arabulucuya Başvurulacak',arabulucuBasvuruldu:'Arabuluculuğa Başvuruldu',davaacilacak:'Dava Açılacak',active:'İlk Derece',bam:'BAM',yargitay:'Yargıtay',infaz:'İnfaz',urgent:'Acil',closed:'Kapalı'};
 function statusBadge(s) {
   const map = {arabulucu:'bb',arabulucuBasvuruldu:'bb',davaacilacak:'bu',active:'ba',bam:'bp',yargitay:'bpur',infaz:'bc',urgent:'bu',closed:'bc'};
   const lbl = {arabulucu:'Arabulucuya Başvurulacak',arabulucuBasvuruldu:'Arabuluculuğa Başvuruldu',davaacilacak:'Dava Açılacak',active:'İlk Derece',bam:'BAM',yargitay:'Yargıtay',infaz:'İnfaz',urgent:'Acil',closed:'Kapalı'};
@@ -1664,14 +1667,15 @@ function statusBadge(s) {
 function renderCasesTable() {
   const tb = document.getElementById('cases-tbody');
   let list = [...cases];
-  if(caseFilter!=='all') list = list.filter(c=>c.status===caseFilter);
+  if(caseFilter==='incelenmemis') list = list.filter(c=>!c.incelemeTarihi);
+  else if(caseFilter!=='all') list = list.filter(c=>c.status===caseFilter);
   if(caseSearch) {
     const normalize = s => (s||'').toLocaleLowerCase('tr-TR')
       .replace(/ı/g,'i').replace(/İ/g,'i').replace(/ğ/g,'g').replace(/Ğ/g,'g')
       .replace(/ş/g,'s').replace(/Ş/g,'s').replace(/ç/g,'c').replace(/Ç/g,'c')
       .replace(/ö/g,'o').replace(/Ö/g,'o').replace(/ü/g,'u').replace(/Ü/g,'u');
     const q = normalize(caseSearch);
-    list = list.filter(c => normalize(c.buro+c.muv+c.tel+c.mahkeme+(c.esas||'')+(c.konu||'')+(c.guncelDurum||'')+c.karsitaraf).includes(q));
+    list = list.filter(c => normalize(c.buro+c.muv+c.tel+c.mahkeme+(c.esas||'')+(c.konu||'')+(c.guncelDurum||'')+c.karsitaraf+' '+(STATUS_LBL[c.status]||'')).includes(q));
   }
   list.sort((a,b)=>{
     const na = parseInt((a.buro||'').replace(/\D/g,''))||0;
@@ -1679,7 +1683,7 @@ function renderCasesTable() {
     if(na !== nb) return na - nb;
     return (a.buro||'').localeCompare(b.buro||'');
   });
-  if(!list.length){ tb.innerHTML='<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--txt3)">Sonuç bulunamadı</td></tr>'; return; }
+  if(!list.length){ tb.innerHTML='<tr><td colspan="12" style="text-align:center;padding:24px;color:var(--txt3)">Sonuç bulunamadı</td></tr>'; return; }
   const kararLbl = {kabul:'Kabul',red:'Red',kismi:'Kısmi'};
   const totalCount = list.length;
   list = list.slice(0, casesRenderLimit);
@@ -1697,16 +1701,25 @@ function renderCasesTable() {
       <td>${statusBadge(c.status)}</td>
       <td class="hide-mobile">${nextLbl}</td>
       <td class="hide-mobile">${c.karar ? `<span class="badge ${c.karar==='kabul'?'ba':c.karar==='red'?'bu':'bb'}">${kararLbl[c.karar]||c.karar}</span>` : '—'}</td>
+      <td class="hide-mobile" onclick="event.stopPropagation();"><input type="date" class="fc" style="padding:3px 6px;font-size:11px;width:128px;" value="${c.incelemeTarihi||''}" onchange="setInceleme('${c.id}',this.value)" title="Dosyanın incelendiği tarih"></td>
       <td><div class="row-acts">
         <button class="ib" onclick="event.stopPropagation();openEditCase('${c.id}')">✏️</button>
         <button class="ib" onclick="event.stopPropagation();deleteCase('${c.id}')">🗑</button>
       </div></td>
     </tr>`;
   }).join('') + (totalCount > casesRenderLimit
-    ? `<tr><td colspan="11" style="text-align:center;padding:10px;">
+    ? `<tr><td colspan="12" style="text-align:center;padding:10px;">
         <button class="btn btn-s btn-sm" onclick="casesRenderLimit+=200;renderCasesTable()">▼ Daha Fazla Göster (${totalCount - casesRenderLimit} dava daha)</button>
        </td></tr>`
     : '');
+}
+
+function setInceleme(id, val) {
+  const cs = cases.find(x => String(x.id) === String(id));
+  if(!cs) return;
+  cs.incelemeTarihi = val;
+  addLog(val ? 'Dosya İncelendi' : 'İnceleme Tarihi Silindi', 'Büro: ' + (cs.buro||'') + ' — ' + (cs.muv||'') + (val ? ' (' + fmtDate(val) + ')' : ''));
+  save('cases');
 }
 
 function getNextDate(c) {
@@ -1903,7 +1916,7 @@ function syncTodosWithCase(data) {
       return t;
     });
   });
-  if(changed) save();
+  if(changed) save('todos');
 }
 
 function saveCase() {
@@ -1923,16 +1936,16 @@ function saveCase() {
     addLog('Yeni Dava Eklendi', `Büro: ${data.buro} — ${data.muv}`);
     syncCaseEvents(newCase.id, data);
   }
-  caseFormDirty = false; save(); closeMod('case');
+  syncTodosWithCase(data);
+  updateTodoBadge();
+  caseFormDirty = false; save('cases'); closeMod('case');
   showToast('✅','Kaydedildi', data.muv + ' davası kaydedildi.');
   updateStats(); renderRecentCases(); renderCasesTable(); renderCalendar(); renderDashboardUpcoming();
 }
 
 function syncCaseEvents(caseId, data) {
-  // Artık case tarihleri getAllDates() üzerinden okunuyor.
-  // Sadece eski auto-event'leri temizle, yeni ekleme yapma.
   events = events.filter(e=>e.caseId!==caseId||!e.auto);
-  save();
+  save('events');
 }
 
 function deleteCase(id) {
@@ -1941,7 +1954,7 @@ function deleteCase(id) {
   cases = cases.filter(x=>x.id!==id);
   events = events.filter(e=>e.caseId!==id); // manuel eklenen etkinlikleri temizle
   addLog('Dava Silindi', `Büro: ${c?.buro} — ${c?.muv}`);
-  save(); updateStats(); renderRecentCases(); renderCasesTable(); renderCalendar(); renderDashboardUpcoming();
+  save('cases','events'); updateStats(); renderRecentCases(); renderCasesTable(); renderCalendar(); renderDashboardUpcoming();
   showToast('🗑','Silindi','Dava dosyası silindi.');
 }
 
@@ -2088,11 +2101,11 @@ function saveEvent() {
   const date=document.getElementById('e-date').value;
   if(!title||!date){ showToast('⚠️','Eksik','Başlık ve tarih gerekli.'); return; }
   events.push({ id:Date.now().toString(), title, date, time:document.getElementById('e-time').value, type:document.getElementById('e-type').value, caseNo:document.getElementById('e-case').value, priority:document.getElementById('e-priority').value, desc:document.getElementById('e-desc').value, addedBy:currentUser });
-  save(); closeMod('event');
+  save('events'); closeMod('event');
   showToast('📅','Eklendi','Takvim olayı kaydedildi.');
   renderCalendar(); renderReminders(); updateStats();
 }
-function delEvent(id){ events=events.filter(e=>e.id!==id); save(); renderCalendar(); renderReminders(); updateStats(); }
+function delEvent(id){ events=events.filter(e=>e.id!==id); save('events'); renderCalendar(); renderReminders(); updateStats(); }
 
 // =========================================================
 // REMINDERS
@@ -2465,7 +2478,7 @@ function renderZamanasimi() {
 let calls = [];
 let editingCallId = null;
 
-function saveCalls() { save(); }
+function saveCalls() { save('calls'); }
 
 function openCallModal(id) {
   editingCallId = id || null;
@@ -2728,7 +2741,7 @@ function importData(input) {
   reader.readAsText(file, 'UTF-8');
 }
 
-function saveTodos() { save(); }
+function saveTodos() { save('todos'); }
 
 function isValidDate(val) {
   if(!val || val.length !== 10) return false;
