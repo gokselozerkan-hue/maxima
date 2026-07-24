@@ -40,7 +40,16 @@
   }
   header h1{font-size:20px;font-weight:600;letter-spacing:.4px}
   header h1 span{color:#C9A227;font-weight:400}
-  .hdr-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .hdr-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  #connDot{
+    display:inline-flex;align-items:center;gap:6px;font-size:12px;
+    color:#D5DDE4;margin-right:6px;
+  }
+  #connDot::before{
+    content:"";width:8px;height:8px;border-radius:50%;background:#8A9AA8;
+  }
+  #connDot.on::before{background:#5FBF77}
+  #connDot.off::before{background:#E0A030}
 
   /* ---------- Sekmeler ---------- */
   nav{
@@ -165,6 +174,7 @@
 <header>
   <h1>Bilirkişi Rapor Arşivi <span>· Av. Göksel Özerkan</span></h1>
   <div class="hdr-actions">
+    <span id="connDot">bağlanıyor…</span>
     <button class="btn btn-navy btn-sm" onclick="exportData()">⬇ Yedekle</button>
     <button class="btn btn-navy btn-sm" onclick="document.getElementById('importFile').click()">⬆ Yükle</button>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
@@ -300,8 +310,9 @@
 <div id="toast"></div>
 
 <script>
-/* =================== VERİ =================== */
-const STORAGE_KEY = "bilirkisiArsiv_v1";
+/* =================== VERİ (SUNUCU + YEREL YEDEK) =================== */
+const API = "/api/bilirkisi/";
+const LOCAL_KEY = "bilirkisiArsiv_v1";
 const PARAM_KEYS = ["yemek","ulasim","asgari","kidemTavan"];
 const YAKLASIM_BOLUMLERI = [
   "Çalışma Süresi","Kıdem Tazminatı","İhbar Tazminatı","Ücret","Fazla Çalışma Ücreti",
@@ -310,12 +321,10 @@ const YAKLASIM_BOLUMLERI = [
   "Ayrımcılık Tazminatı","Bakiye Süre Ücreti"
 ];
 
-let db = load();
-function load(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(raw) return JSON.parse(raw);
-  }catch(e){}
+let db = emptyDb();
+let online = false;
+
+function emptyDb(){
   return {
     raporlar: [],
     kararlar: [],
@@ -323,18 +332,104 @@ function load(){
     yaklasimlar: {}
   };
 }
-function persist(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+function normDb(d){
+  const out = emptyDb();
+  if(!d) return out;
+  if(Array.isArray(d.raporlar)) out.raporlar = d.raporlar;
+  if(Array.isArray(d.kararlar)) out.kararlar = d.kararlar;
+  if(d.parametreler) PARAM_KEYS.forEach(k=>{
+    if(Array.isArray(d.parametreler[k])) out.parametreler[k]=d.parametreler[k];
+  });
+  if(d.yaklasimlar && typeof d.yaklasimlar==="object") out.yaklasimlar=d.yaklasimlar;
+  return out;
 }
+function setConn(state){
+  online = state;
+  const el=document.getElementById("connDot");
+  el.className = state ? "on" : "off";
+  el.textContent = state ? "sunucu bağlı" : "çevrimdışı";
+}
+
+async function apiGet(k){
+  const r = await fetch(API+k);
+  if(!r.ok) throw new Error("GET "+k);
+  return r.json();
+}
+async function apiPut(k,data){
+  const r = await fetch(API+k,{
+    method:"PUT",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(data)
+  });
+  if(!r.ok) throw new Error("PUT "+k);
+}
+
+async function loadAll(){
+  try{
+    const [raporlar,kararlar,parametreler,yaklasimlar] = await Promise.all([
+      apiGet("raporlar"),apiGet("kararlar"),apiGet("parametreler"),apiGet("yaklasimlar")
+    ]);
+    db = normDb({raporlar,kararlar,parametreler,yaklasimlar});
+    setConn(true);
+    await migrateLocalIfNeeded();
+  }catch(e){
+    // Sunucuya ulaşılamadı: son yerel kopyayla devam et
+    try{ db = normDb(JSON.parse(localStorage.getItem(LOCAL_KEY)||"null")); }catch(_){ db = emptyDb(); }
+    setConn(false);
+    toast("Sunucuya ulaşılamadı — son yerel kopya gösteriliyor");
+  }
+  renderAll();
+}
+
+/* Bu tarayıcıda eski (localStorage) sürümden kalan veri varsa ve sunucu boşsa aktar */
+async function migrateLocalIfNeeded(){
+  let local=null;
+  try{ local = JSON.parse(localStorage.getItem(LOCAL_KEY)||"null"); }catch(_){}
+  if(!local) return;
+  const serverEmpty =
+    db.raporlar.length===0 && db.kararlar.length===0 &&
+    PARAM_KEYS.every(k=>db.parametreler[k].length===0) &&
+    !Object.values(db.yaklasimlar).some(v=>v);
+  const l = normDb(local);
+  const localHas =
+    l.raporlar.length>0 || l.kararlar.length>0 ||
+    PARAM_KEYS.some(k=>l.parametreler[k].length>0) ||
+    Object.values(l.yaklasimlar).some(v=>v);
+  if(serverEmpty && localHas &&
+     confirm("Bu tarayıcıda daha önce girilmiş kayıtlar bulundu. Ortak veritabanına aktarılsın mı?")){
+    db = l;
+    await persist();
+    toast("Kayıtlar veritabanına aktarıldı ✓");
+  }
+}
+
+/* Kaydet: önce yerel kopya, sonra sunucu. true dönerse sunucuya yazıldı. */
+async function persist(keys){
+  try{ localStorage.setItem(LOCAL_KEY, JSON.stringify(db)); }catch(_){}
+  if(!keys) keys=["raporlar","kararlar","parametreler","yaklasimlar"];
+  try{
+    await Promise.all(keys.map(k=>apiPut(k,db[k])));
+    setConn(true);
+    return true;
+  }catch(e){
+    setConn(false);
+    return false;
+  }
+}
+function saveToast(ok,msg){
+  toast(ok ? msg+" ✓" : "Kaydedilemedi! Bağlantıyı kontrol edip tekrar Kaydet'e basın.");
+}
+
 function toast(msg){
   const t=document.getElementById("toast");
   t.textContent=msg;t.classList.add("show");
-  clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove("show"),2200);
+  clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove("show"),2600);
 }
 function esc(s){
   return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 function shorten(s,n){s=String(s??"");return s.length>n?s.slice(0,n)+"…":s;}
+function renderAll(){renderRaporList();renderKararList();renderParams();renderYaklasimlar();}
 
 /* =================== GÖRÜNÜM =================== */
 function showView(name){
@@ -388,7 +483,7 @@ function openRaporForm(id){
   });
   showView("raporForm");
 }
-function saveRapor(){
+async function saveRapor(){
   const data={};
   RAPOR_ALANLAR.forEach(a=>data[a]=document.getElementById("f_"+a).value.trim());
   if(!data.mahkeme && !data.esas){toast("En az Mahkeme Adı veya Esas No giriniz.");return;}
@@ -399,16 +494,18 @@ function saveRapor(){
     data.id="r"+Date.now();
     db.raporlar.unshift(data);
   }
-  persist();
+  const ok=await persist(["raporlar"]);
   renderRaporList();
-  toast("Rapor kaydedildi ✓");
-  showView("raporlar");
+  saveToast(ok,"Rapor kaydedildi");
+  if(ok) showView("raporlar");
 }
-function deleteRapor(id){
+async function deleteRapor(id){
   const r=db.raporlar.find(x=>x.id===id);
   if(!confirm(`"${r.mahkeme||""} ${r.esas||""}" kaydı silinsin mi?`))return;
   db.raporlar=db.raporlar.filter(x=>x.id!==id);
-  persist();renderRaporList();toast("Rapor silindi");
+  const ok=await persist(["raporlar"]);
+  renderRaporList();
+  saveToast(ok,"Rapor silindi");
 }
 
 /* =================== KARARLAR =================== */
@@ -446,7 +543,7 @@ function openKararForm(id){
   KARAR_ALANLAR.forEach(a=>document.getElementById("k_"+a).value = k?(k[a]||""):"");
   showView("kararForm");
 }
-function saveKarar(){
+async function saveKarar(){
   const data={};
   KARAR_ALANLAR.forEach(a=>data[a]=document.getElementById("k_"+a).value.trim());
   if(!data.konu && !data.esas){toast("En az Konu veya Esas No giriniz.");return;}
@@ -456,13 +553,18 @@ function saveKarar(){
     data.id="k"+Date.now();
     db.kararlar.unshift(data);
   }
-  persist();renderKararList();toast("Karar kaydedildi ✓");showView("kararlar");
+  const ok=await persist(["kararlar"]);
+  renderKararList();
+  saveToast(ok,"Karar kaydedildi");
+  if(ok) showView("kararlar");
 }
-function deleteKarar(id){
+async function deleteKarar(id){
   const k=db.kararlar.find(x=>x.id===id);
   if(!confirm(`"${k.konu||k.esas||"Karar"}" kaydı silinsin mi?`))return;
   db.kararlar=db.kararlar.filter(x=>x.id!==id);
-  persist();renderKararList();toast("Karar silindi");
+  const ok=await persist(["kararlar"]);
+  renderKararList();
+  saveToast(ok,"Karar silindi");
 }
 
 /* =================== PARAMETRELER =================== */
@@ -497,17 +599,17 @@ function syncParamInputs(){
     db.parametreler[inp.dataset.key][inp.dataset.i][inp.dataset.f]=inp.value;
   });
 }
-function saveParams(){
+async function saveParams(){
   syncParamInputs();
-  persist();
-  toast("Parametreler kaydedildi ✓");
+  const ok=await persist(["parametreler"]);
+  saveToast(ok,"Parametreler kaydedildi");
 }
 
 /* =================== YAKLAŞIMLAR =================== */
 function renderYaklasimlar(){
   const wrap=document.getElementById("yaklasimWrap");
   let html="";
-  YAKLASIM_BOLUMLERI.forEach((b,i)=>{
+  YAKLASIM_BOLUMLERI.forEach(b=>{
     const val=db.yaklasimlar[b]||"";
     html+=`<details class="approach ${val?'filled':''}">
       <summary>${esc(b)}</summary>
@@ -516,23 +618,24 @@ function renderYaklasimlar(){
   });
   wrap.innerHTML=html;
 }
-function saveYaklasimlar(){
+async function saveYaklasimlar(){
   document.querySelectorAll("#yaklasimWrap textarea").forEach(t=>{
     db.yaklasimlar[t.dataset.bolum]=t.value.trim();
   });
-  persist();
+  const ok=await persist(["yaklasimlar"]);
   renderYaklasimlar();
-  toast("Yaklaşımlar kaydedildi ✓");
+  saveToast(ok,"Yaklaşımlar kaydedildi");
 }
 
 /* =================== YEDEKLEME =================== */
-function exportData(){
-  // Kaydedilmemiş parametre/yaklaşım girişlerini de al
-  try{syncParamInputs();}catch(e){}
+function collectUnsaved(){
+  try{syncParamInputs();}catch(_){}
   document.querySelectorAll("#yaklasimWrap textarea").forEach(t=>{
     db.yaklasimlar[t.dataset.bolum]=t.value.trim();
   });
-  persist();
+}
+function exportData(){
+  collectUnsaved();
   const blob=new Blob([JSON.stringify(db,null,2)],{type:"application/json"});
   const a=document.createElement("a");
   const d=new Date();
@@ -547,18 +650,15 @@ function importData(ev){
   const file=ev.target.files[0];
   if(!file)return;
   const reader=new FileReader();
-  reader.onload=()=>{
+  reader.onload=async()=>{
     try{
       const data=JSON.parse(reader.result);
       if(!data.raporlar || !data.parametreler) throw new Error("format");
-      if(!confirm("Yedek yüklenecek ve mevcut veriler bu yedekle DEĞİŞTİRİLECEK. Devam edilsin mi?"))return;
-      db=data;
-      PARAM_KEYS.forEach(k=>{if(!db.parametreler[k])db.parametreler[k]=[];});
-      if(!db.kararlar)db.kararlar=[];
-      if(!db.yaklasimlar)db.yaklasimlar={};
-      persist();
-      renderRaporList();renderKararList();renderParams();renderYaklasimlar();
-      toast("Yedek başarıyla yüklendi ✓");
+      if(!confirm("Yedek yüklenecek ve veritabanındaki mevcut kayıtlar bu yedekle DEĞİŞTİRİLECEK. Devam edilsin mi?"))return;
+      db=normDb(data);
+      const ok=await persist();
+      renderAll();
+      saveToast(ok,"Yedek yüklendi");
     }catch(e){
       alert("Dosya okunamadı. Geçerli bir yedek (.json) dosyası seçtiğinizden emin olun.");
     }
@@ -568,10 +668,7 @@ function importData(ev){
 }
 
 /* =================== BAŞLAT =================== */
-renderRaporList();
-renderKararList();
-renderParams();
-renderYaklasimlar();
+loadAll();
 </script>
 </body>
 </html>
