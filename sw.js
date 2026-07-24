@@ -1,4 +1,4 @@
-const CACHE = 'maxima-v3';
+const CACHE = 'maxima-v4';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -18,7 +18,9 @@ self.addEventListener('fetch', e => {
   // API ve HTML'yi her zaman ağdan al
   if(url.pathname.startsWith('/api/') ||
      url.pathname === '/' ||
-     url.pathname === '/index.html') return;
+     url.pathname === '/index.html' ||
+     url.pathname === '/bilirkisi' ||
+     url.pathname === '/bilirkisi.html') return;
   // Sadece ikonlar ve manifest için cache
   e.respondWith(
     caches.match(e.request).then(cached => {
