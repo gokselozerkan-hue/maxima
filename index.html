@@ -717,9 +717,10 @@ textarea.fc{resize:vertical;min-height:70px;}
       <div class="content" style="display:flex;gap:16px;height:calc(100vh - 120px);">
         <div style="flex:1;display:flex;flex-direction:column;background:var(--sur);border:1px solid var(--brd);border-radius:var(--rl);overflow:hidden;">
           <div style="padding:10px 14px;border-bottom:1px solid var(--brd);font-size:12.5px;font-weight:600;color:var(--txt);background:var(--sur2);">
-            💬 Grup Sohbeti
+            <span id="chat-header-title">💬 Grup Sohbeti</span>
             <span style="font-size:11px;color:var(--txt3);margin-left:8px;" id="chat-online"></span>
           </div>
+          <div id="chat-channels" style="display:flex;gap:4px;padding:8px 10px;border-bottom:1px solid var(--brd);background:var(--sur2);overflow-x:auto;-webkit-overflow-scrolling:touch;"></div>
           <div id="chat-messages" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;"></div>
           <div style="padding:10px 12px;border-top:1px solid var(--brd);display:flex;gap:8px;background:var(--sur2);">
             <input class="fc" id="chat-input" placeholder="Mesaj yazın..." style="flex:1;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}">
@@ -1377,6 +1378,7 @@ function selectUser(idx) {
 }
 
 function switchUser() {
+  chatChannel = 'group';
   document.getElementById('app').style.display = 'none';
   document.getElementById('password-screen').style.display = 'flex';
   document.getElementById('user-select').style.display = 'none';
@@ -1515,7 +1517,7 @@ function goPage(id, el) {
   if(id==='chat') {
     // Chat mesajları zaten API'den yüklendi
     lastChatLen = chatMsgs.length;
-    renderChat(); renderChatUsers(); scrollChat();
+    renderChatChannels(); renderChat(); renderChatUsers(); scrollChat();
     const b = document.getElementById('badge-chat');
     if(b){ b.style.display='none'; b.textContent='0'; }
   }
@@ -3061,13 +3063,56 @@ let chatMsgs = [];
 let chatInterval = null;
 let lastChatLen = chatMsgs.length;
 
+// ÖZEL MESAJ SİSTEMİ
+const DM_OWNER = 'Av. Göksel Özerkan'; // özel kanalların merkezindeki kullanıcı
+let chatChannel = 'group'; // 'group' veya personel adı
+
+// Bu mesajı mevcut kullanıcı görebilir mi? (grup herkese; özel mesaj sadece iki tarafa)
+function canSeeMsg(m) {
+  if(!m.to) return true;
+  return m.user === currentUser || m.to === currentUser;
+}
+
+// Mesaj hangi kanala ait? (özel kanal, personelin adıyla anılır)
+function channelOf(m) {
+  if(!m.to) return 'group';
+  return m.user === DM_OWNER ? m.to : m.user;
+}
+
+function chatChannelList() {
+  if(currentUser === DM_OWNER) {
+    return [{key:'group', label:'👥 Grup'}]
+      .concat(users.filter(u => u !== DM_OWNER).map(u => ({key:u, label:'📩 ' + u})));
+  }
+  return [{key:'group', label:'👥 Grup'}, {key:currentUser, label:'📩 ' + DM_OWNER + ' (Özel)'}];
+}
+
+function renderChatChannels() {
+  const cont = document.getElementById('chat-channels');
+  if(!cont) return;
+  cont.innerHTML = chatChannelList().map(ch => `
+    <div class="tab ${chatChannel===ch.key?'active':''}" style="flex-shrink:0;background:${chatChannel===ch.key?'var(--sur)':'transparent'};"
+      onclick="setChatChannel('${ch.key.replace(/'/g,"\\'")}')">${ch.label}</div>`).join('');
+  const head = document.getElementById('chat-header-title');
+  if(head) head.textContent = chatChannel === 'group' ? '💬 Grup Sohbeti'
+    : (currentUser === DM_OWNER ? '📩 Özel — ' + chatChannel : '📩 Özel — ' + DM_OWNER);
+}
+
+function setChatChannel(key) {
+  chatChannel = key;
+  renderChatChannels();
+  renderChat();
+  scrollChat();
+}
+
 function saveChat() { /* chat sunucuya anlık gönderilir */ }
 
 async function sendChat() {
   const inp = document.getElementById('chat-input');
   const msg = inp?.value.trim();
   if(!msg || !currentUser) return;
-  const newMsg = { id: Date.now().toString(), user: currentUser, text: msg, ts: new Date().toISOString() };
+  const to = chatChannel === 'group' ? '' : (currentUser === DM_OWNER ? chatChannel : DM_OWNER);
+  const newMsg = { id: Date.now().toString(), user: currentUser, text: msg, ts: new Date().toISOString(), to: to };
   chatMsgs.push(newMsg);
   inp.value = '';
   renderChat(); scrollChat();
@@ -3077,8 +3122,9 @@ async function sendChat() {
 function renderChat() {
   const cont = document.getElementById('chat-messages');
   if(!cont) return;
-  if(!chatMsgs.length){ cont.innerHTML='<div class="empty"><div class="eico">💬</div><p>Henüz mesaj yok.</p></div>'; return; }
-  cont.innerHTML = chatMsgs.map(m=>{
+  const visible = chatMsgs.filter(m => canSeeMsg(m) && channelOf(m) === chatChannel);
+  if(!visible.length){ cont.innerHTML='<div class="empty"><div class="eico">💬</div><p>Henüz mesaj yok.</p></div>'; return; }
+  cont.innerHTML = visible.map(m=>{
     const isMe = m.user === currentUser;
     const time = new Date(m.ts).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
     return `<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'};gap:2px;">
@@ -3096,11 +3142,15 @@ function scrollChat() {
 function renderChatUsers() {
   const cont = document.getElementById('chat-users');
   if(!cont) return;
-  cont.innerHTML = users.map(u=>`
-    <div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--brd);">
+  cont.innerHTML = users.map(u=>{
+    const clickable = u !== currentUser && (currentUser === DM_OWNER || u === DM_OWNER);
+    const chKey = currentUser === DM_OWNER ? u : currentUser;
+    return `
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--brd);${clickable?'cursor:pointer;':''}"
+      ${clickable?`onclick="setChatChannel('${chKey.replace(/'/g,"\\'")}')" title="Özel mesaj"`:''}>
       <div style="width:7px;height:7px;border-radius:50%;background:${u===currentUser?'var(--grn)':'var(--txt3)'};flex-shrink:0;"></div>
-      <div style="font-size:12px;color:${u===currentUser?'var(--txt)':'var(--txt2)'};">${u}${u===currentUser?' (Sen)':''}</div>
-    </div>`).join('');
+      <div style="font-size:12px;color:${u===currentUser?'var(--txt)':'var(--txt2)'};">${u}${u===currentUser?' (Sen)':''}${clickable?' 📩':''}</div>
+    </div>`;}).join('');
 }
 
 async function updateChatBadge() {
@@ -3113,10 +3163,10 @@ async function updateChatBadge() {
       chatMsgs = stored; lastChatLen = stored.length;
       renderChat(); scrollChat();
     } else {
-      const others = newMsgs.filter(m=>m.user!==currentUser);
+      const others = newMsgs.filter(m=>m.user!==currentUser && canSeeMsg(m));
       if(others.length) {
         const last = others[others.length-1];
-        showToast('💬', last.user, last.text.substring(0,60));
+        showToast(last.to ? '📩' : '💬', last.user + (last.to ? ' (Özel)' : ''), last.text.substring(0,60));
         const b = document.getElementById('badge-chat');
         if(b){ b.textContent=others.length; b.style.display=''; }
       }
