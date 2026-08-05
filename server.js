@@ -11,9 +11,9 @@ let db = null;
 async function initDB() {
   if (!DATABASE_URL) { console.log('Dosya sistemi kullanılıyor.'); return false; }
   try {
-    const { Client } = require('pg');
-    db = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } });
-    await db.connect();
+    const { Pool } = require('pg');
+    db = new Pool({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false }, max: 5 });
+    db.on('error', e => console.error('DB bağlantısı koptu, otomatik toparlanacak:', e.message));
     await db.query(`CREATE TABLE IF NOT EXISTS maxima_data (
       key VARCHAR(50) PRIMARY KEY,
       value TEXT NOT NULL,
