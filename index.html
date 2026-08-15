@@ -1189,6 +1189,37 @@ const API = {
   }
 };
 
+let _lastRefresh = 0;
+async function refreshData(force) {
+  if(!currentUser) return;
+  if(document.querySelector('.moverlay.show')) return; // form açıkken bekle
+  const now = Date.now();
+  if(!force && now - _lastRefresh < 60000) return;
+  _lastRefresh = now;
+  try {
+    const [cs, ev, td, cl] = await Promise.all([
+      API.get('cases'), API.get('events'), API.get('todos'), API.get('calls')
+    ]);
+    if(Array.isArray(cs)) cases = cs;
+    if(Array.isArray(ev)) events = ev;
+    if(Array.isArray(td)) todos = td;
+    if(Array.isArray(cl)) calls = cl;
+    invalidateDatesCache();
+    const pg = document.querySelector('.page.active');
+    const pid = pg ? pg.id.replace('page-','') : '';
+    if(pid === 'cases' && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('#cases-tbody'))) renderCasesTable();
+    if(pid === 'dashboard') { updateStats(); renderDashboardUpcoming(); renderRecentCases(); }
+    if(pid === 'todo') renderTodos();
+    if(pid === 'calls') renderCalls();
+    if(pid === 'calendar') renderCalendar();
+    if(pid === 'reminders') renderReminders();
+    if(pid === 'zamanasimi') renderZamanasimi();
+    updateTodoBadge(); updateCallsBadge();
+  } catch(e) { console.warn('Tazeleme hatası:', e); }
+}
+window.addEventListener('focus', () => refreshData(false));
+setInterval(() => { if(!document.hidden) refreshData(false); }, 180000);
+
 async function loadAllData() {
   const [c, e, t, ca, ch, u, s] = await Promise.all([
     API.get('cases'), API.get('events'), API.get('todos'),
@@ -1203,6 +1234,7 @@ async function loadAllData() {
   if(s && s.theme) settings = {...settings, ...s};
   lastChatLen = chatMsgs.length;
   invalidateDatesCache();
+  _lastRefresh = Date.now();
 }
 
 
@@ -1236,27 +1268,16 @@ calMonth = now.getMonth();
 
 const TR_MONTHS = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
 
-let _dirtyKeys = new Set();
-function save(...keys) {
-  invalidateDatesCache();
-  // Hangi veri değiştiyse sadece onu sunucuya yaz — diğer bilgisayarlardaki
-  // eski kopyaların başka verilerin üzerine yazmasını (veri kaybını) önler
-  if(keys.length) keys.forEach(k => _dirtyKeys.add(k));
-  else ['cases','events','todos','calls','logs'].forEach(k => _dirtyKeys.add(k));
-  syncToServer();
-}
+// KAYIT-BAZLI KALICILIK: Her işlem sunucuya YALNIZCA ilgili tek kaydı yazar.
+// Toplu dizi yazımı kaldırıldı — bir bilgisayardaki eski liste artık
+// diğer kullanıcıların işlediği verileri ezemez.
+function save() { invalidateDatesCache(); }
 
-let syncTimer = null;
-function syncToServer() {
-  clearTimeout(syncTimer);
-  syncTimer = setTimeout(async () => {
-    const keys = Array.from(_dirtyKeys);
-    _dirtyKeys.clear();
-    const src = { cases: () => cases, events: () => events, todos: () => todos, calls: () => calls, logs: () => logs.slice(-500) };
-    try {
-      await Promise.all(keys.filter(k => src[k]).map(k => API.put(k, null, src[k]())));
-    } catch(e) { console.warn('Sync error:', e); keys.forEach(k => _dirtyKeys.add(k)); }
-  }, 500);
+function apiSafe(promise) {
+  return promise.catch(e => {
+    console.warn('Kayıt hatası:', e);
+    showToast('⚠️','Sunucu Hatası','Değişiklik sunucuya yazılamadı! İnternet bağlantısını kontrol edip işlemi tekrarlayın.');
+  });
 }
 
 async function saveSettings() {
@@ -1268,8 +1289,9 @@ async function saveUsers() {
 }
 
 function addLog(action, detail) {
-  logs.push({ ts: new Date().toISOString(), user: currentUser || '?', action, detail });
-  save('logs');
+  const _entry = { ts: new Date().toISOString(), user: currentUser || '?', action, detail };
+  logs.push(_entry);
+  apiSafe(API.post('logs', _entry));
 }
 
 // =========================================================
@@ -1360,7 +1382,7 @@ function selectUser(idx) {
   // Eski auto event'leri temizle (değişiklik yoksa sunucuya yükleme yapma)
   const _evLen = events.length;
   events = events.filter(e=>!e.auto);
-  if(events.length !== _evLen) save('events');
+  if(events.length !== _evLen) apiSafe(API.put('events', null, events));
   updateStats();
   renderRecentCases();
   renderDashboardUpcoming();
@@ -1721,7 +1743,8 @@ function setInceleme(id, val) {
   if(!cs) return;
   cs.incelemeTarihi = val;
   addLog(val ? 'Dosya İncelendi' : 'İnceleme Tarihi Silindi', 'Büro: ' + (cs.buro||'') + ' — ' + (cs.muv||'') + (val ? ' (' + fmtDate(val) + ')' : ''));
-  save('cases');
+  save();
+  apiSafe(API.put('cases', String(cs.id), { incelemeTarihi: val }));
 }
 
 function getNextDate(c) {
@@ -1895,12 +1918,13 @@ function syncTodosWithCase(data) {
     {yapildi: data.kesifYapildi, keyword: 'Keşif'},
   ];
   let changed = false;
+  const _changedTodoIds = [];
   pairs.forEach(function(pair) {
     if(!pair.yapildi) return;
     todos = todos.map(function(t) {
       if(t.done) return t;
       if(t.title.includes(pair.keyword) && (t.title.includes(muv) || t.title.includes(buro))) {
-        changed = true;
+        changed = true; _changedTodoIds.push(t.id);
         return {...t, done: true, doneBy: currentUser, doneAt: new Date().toISOString()};
       }
       return t;
@@ -1912,13 +1936,19 @@ function syncTodosWithCase(data) {
     todos = todos.map(function(t) {
       if(t.done) return t;
       if(t.title.includes('Bilirkişi Raporu Beyan') && (t.title.includes(muv) || t.title.includes(buro))) {
-        changed = true;
+        changed = true; _changedTodoIds.push(t.id);
         return {...t, done: true, doneBy: currentUser, doneAt: new Date().toISOString()};
       }
       return t;
     });
   });
-  if(changed) save('todos');
+  if(changed) {
+    save();
+    _changedTodoIds.forEach(tid => {
+      const t = todos.find(x => x.id === tid);
+      if(t) apiSafe(API.put('todos', tid, { done:t.done, doneBy:t.doneBy, doneAt:t.doneAt }));
+    });
+  }
 }
 
 function saveCase() {
@@ -1940,14 +1970,22 @@ function saveCase() {
   }
   syncTodosWithCase(data);
   updateTodoBadge();
-  caseFormDirty = false; save('cases'); closeMod('case');
+  caseFormDirty = false; save();
+  if(editingCaseId) {
+    const _sc = cases.find(x => x.id === editingCaseId);
+    if(_sc) apiSafe(API.put('cases', editingCaseId, _sc));
+  } else {
+    const _nc = cases[cases.length - 1];
+    if(_nc) apiSafe(API.post('cases', _nc));
+  }
+  closeMod('case');
   showToast('✅','Kaydedildi', data.muv + ' davası kaydedildi.');
   updateStats(); renderRecentCases(); renderCasesTable(); renderCalendar(); renderDashboardUpcoming();
 }
 
 function syncCaseEvents(caseId, data) {
   events = events.filter(e=>e.caseId!==caseId||!e.auto);
-  save('events');
+  save();
 }
 
 function deleteCase(id) {
@@ -1956,7 +1994,8 @@ function deleteCase(id) {
   cases = cases.filter(x=>x.id!==id);
   events = events.filter(e=>e.caseId!==id); // manuel eklenen etkinlikleri temizle
   addLog('Dava Silindi', `Büro: ${c?.buro} — ${c?.muv}`);
-  save('cases','events'); updateStats(); renderRecentCases(); renderCasesTable(); renderCalendar(); renderDashboardUpcoming();
+  save();
+  apiSafe(API.del('cases', id, currentUser)); updateStats(); renderRecentCases(); renderCasesTable(); renderCalendar(); renderDashboardUpcoming();
   showToast('🗑','Silindi','Dava dosyası silindi.');
 }
 
@@ -2103,11 +2142,13 @@ function saveEvent() {
   const date=document.getElementById('e-date').value;
   if(!title||!date){ showToast('⚠️','Eksik','Başlık ve tarih gerekli.'); return; }
   events.push({ id:Date.now().toString(), title, date, time:document.getElementById('e-time').value, type:document.getElementById('e-type').value, caseNo:document.getElementById('e-case').value, priority:document.getElementById('e-priority').value, desc:document.getElementById('e-desc').value, addedBy:currentUser });
-  save('events'); closeMod('event');
+  save();
+  apiSafe(API.post('events', events[events.length-1]));
+  closeMod('event');
   showToast('📅','Eklendi','Takvim olayı kaydedildi.');
   renderCalendar(); renderReminders(); updateStats();
 }
-function delEvent(id){ events=events.filter(e=>e.id!==id); save('events'); renderCalendar(); renderReminders(); updateStats(); }
+function delEvent(id){ events=events.filter(e=>e.id!==id); save(); apiSafe(API.del('events', id, currentUser)); renderCalendar(); renderReminders(); updateStats(); }
 
 // =========================================================
 // REMINDERS
@@ -2480,7 +2521,7 @@ function renderZamanasimi() {
 let calls = [];
 let editingCallId = null;
 
-function saveCalls() { save('calls'); }
+function saveCalls() { save(); }
 
 function openCallModal(id) {
   editingCallId = id || null;
@@ -2523,8 +2564,8 @@ function saveCall() {
     createdBy: currentUser,
     createdAt: editingCallId ? (calls.find(c=>c.id===editingCallId)?.createdAt||Date.now()) : Date.now()
   };
-  if(editingCallId) { calls = calls.map(c=>c.id===editingCallId?obj:c); addLog('Arama Güncellendi', name); }
-  else { calls.unshift(obj); addLog('Arama Kaydedildi', name + ' aradı'); }
+  if(editingCallId) { calls = calls.map(c=>c.id===editingCallId?obj:c); addLog('Arama Güncellendi', name); apiSafe(API.put('calls', editingCallId, obj)); }
+  else { calls.unshift(obj); addLog('Arama Kaydedildi', name + ' aradı'); apiSafe(API.post('calls', obj)); }
   saveCalls(); closeMod('call');
   showToast('📞','Kaydedildi', name + ' araması kaydedildi.');
   renderCalls(); updateCallsBadge();
@@ -2536,6 +2577,8 @@ function toggleTalepKarsilandi(id, val) {
     addLog(val?'Talep Karşılandı':'Talep Geri Alındı', c.name);
     return {...c, talepKarsilandi: val, done: val, doneBy: val?currentUser:'', doneAt: val?new Date().toISOString():''};
   });
+  const _c = calls.find(x=>x.id===id);
+  if(_c) apiSafe(API.put('calls', id, { talepKarsilandi:_c.talepKarsilandi, done:_c.done, doneBy:_c.doneBy, doneAt:_c.doneAt }));
   saveCalls(); renderCalls(); updateCallsBadge();
 }
 
@@ -2544,6 +2587,7 @@ function deleteCallById(id) {
   if(!confirm('Bu arama kaydını silmek istediğinizden emin misiniz?')) return;
   calls = calls.filter(x=>x.id!==id);
   addLog('Arama Silindi', c?.name||'');
+  apiSafe(API.del('calls', id, currentUser));
   saveCalls(); renderCalls(); updateCallsBadge();
   showToast('🗑','Silindi','Arama kaydı silindi.');
 }
@@ -2551,6 +2595,7 @@ function deleteCallById(id) {
 function deleteCallFromModal() {
   if(!editingCallId) return;
   const c = calls.find(x=>x.id===editingCallId);
+  apiSafe(API.del('calls', editingCallId, currentUser));
   calls = calls.filter(x=>x.id!==editingCallId);
   addLog('Arama Silindi', c?.name||'');
   saveCalls(); closeMod('call');
@@ -2743,7 +2788,7 @@ function importData(input) {
   reader.readAsText(file, 'UTF-8');
 }
 
-function saveTodos() { save('todos'); }
+function saveTodos() { save(); }
 
 function isValidDate(val) {
   if(!val || val.length !== 10) return false;
@@ -2851,6 +2896,7 @@ function deleteCheckedTodos(ids) {
     return;
   }
   todos = todos.filter(t => !toDelete.includes(t.id));
+  toDelete.forEach(tid => apiSafe(API.del('todos', tid, currentUser)));
   saveTodos();
   document.getElementById('modal-delete-todos')?.remove();
   showToast('🗑','Silindi', toDelete.length + ' görev silindi.');
@@ -2911,8 +2957,8 @@ function saveTodo() {
     doneBy: editingTodoId ? (todos.find(t=>t.id===editingTodoId)?.doneBy||'') : '',
     doneAt: editingTodoId ? (todos.find(t=>t.id===editingTodoId)?.doneAt||'') : ''
   };
-  if(editingTodoId) { todos = todos.map(t=>t.id===editingTodoId?obj:t); addLog('Gorev Guncellendi', title); }
-  else { todos.unshift(obj); addLog('Gorev Eklendi', title); }
+  if(editingTodoId) { todos = todos.map(t=>t.id===editingTodoId?obj:t); addLog('Gorev Guncellendi', title); apiSafe(API.put('todos', editingTodoId, obj)); }
+  else { todos.unshift(obj); addLog('Gorev Eklendi', title); apiSafe(API.post('todos', obj)); }
   saveTodos(); closeMod('todo');
   showToast('✅','Kaydedildi', title);
   renderTodos(); updateTodoBadge(); renderCalendar(); updateStats(); renderDashboardUpcoming(); renderReminders();
@@ -2925,6 +2971,8 @@ function toggleTodo(id) {
     addLog(done?'Gorev Tamamlandi':'Gorev Geri Alindi', t.title);
     return {...t, done, doneBy: done?currentUser:'', doneAt: done?new Date().toISOString():''};
   });
+  const _t = todos.find(x=>x.id===id);
+  if(_t) apiSafe(API.put('todos', id, { done:_t.done, doneBy:_t.doneBy, doneAt:_t.doneAt }));
   saveTodos(); renderTodos(); updateTodoBadge(); renderCalendar(); updateStats(); renderDashboardUpcoming(); renderReminders();
 }
 
@@ -2933,6 +2981,7 @@ function deleteTodoFromModal() {
   const t = todos.find(x=>x.id===editingTodoId);
   todos = todos.filter(x=>x.id!==editingTodoId);
   addLog('Gorev Silindi', t?.title||'');
+  apiSafe(API.del('todos', editingTodoId, currentUser));
   saveTodos(); closeMod('todo');
   showToast('🗑','Silindi','Gorev silindi.');
   renderTodos(); updateTodoBadge(); renderCalendar(); updateStats(); renderDashboardUpcoming(); renderReminders();
