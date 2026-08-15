@@ -11,9 +11,9 @@ let db = null;
 async function initDB() {
   if (!DATABASE_URL) { console.log('Dosya sistemi kullanılıyor.'); return false; }
   try {
-    const { Pool } = require('pg');
-    db = new Pool({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false }, max: 5 });
-    db.on('error', e => console.error('DB bağlantısı koptu, otomatik toparlanacak:', e.message));
+    const { Client } = require('pg');
+    db = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } });
+    await db.connect();
     await db.query(`CREATE TABLE IF NOT EXISTS maxima_data (
       key VARCHAR(50) PRIMARY KEY,
       value TEXT NOT NULL,
@@ -28,10 +28,6 @@ const DEFAULTS = {
   cases:'[]',events:'[]',todos:'[]',calls:'[]',chat:'[]',logs:'[]',
   users:'["Av. Göksel Özerkan","Av. Berker Ünal","Av. Fatmanur Şenocak","Av. Aslıhan Bilgin","Mine Yılmazoğlu"]',
   settings:'{"theme":"dark","alarmDays":3}',
-  bk_raporlar:'[]',
-  bk_kararlar:'[]',
-  bk_parametreler:'{"yemek":[],"ulasim":[],"asgari":[],"kidemTavan":[]}',
-  bk_yaklasimlar:'{}',
 };
 
 async function readData(key) {
@@ -71,6 +67,16 @@ const MIME = {
   '.png':'image/png',
 };
 
+// Aynı veri türüne eşzamanlı yazmaları sıraya sokan kilit —
+// iki kullanıcı aynı anda kayıt yaptığında birinin işlemi kaybolmaz
+const _locks = {};
+function withLock(key, fn) {
+  const prev = _locks[key] || Promise.resolve();
+  const next = prev.then(fn, fn);
+  _locks[key] = next.catch(() => {});
+  return next;
+}
+
 function parseBody(req) {
   return new Promise(resolve => {
     let b=''; req.on('data',c=>b+=c);
@@ -104,9 +110,6 @@ const server = http.createServer(async(req,res)=>{
   if(pathname==='/'||pathname==='/index.html')
     return serveFile(res,path.join(__dirname,'index.html'));
 
-  if(pathname==='/bilirkisi'||pathname==='/bilirkisi.html')
-    return serveFile(res,path.join(__dirname,'bilirkisi.html'));
-
   // PWA + patch statik dosyalar
   const staticFiles = ['/manifest.json','/sw.js','/icon-192.png','/icon-512.png','/patch.js'];
   if(staticFiles.includes(pathname))
@@ -119,7 +122,7 @@ const server = http.createServer(async(req,res)=>{
 
     if(pathname==='/api/backup'&&method==='GET') {
       const backup={version:2,exportedAt:new Date().toISOString()};
-      for(const k of ['cases','events','todos','calls','chat','users','logs','settings','bk_raporlar','bk_kararlar','bk_parametreler','bk_yaklasimlar'])
+      for(const k of ['cases','events','todos','calls','chat','users','logs','settings'])
         backup[k]=await readData(k);
       res.writeHead(200,{'Content-Type':'application/json',
         'Content-Disposition':`attachment; filename="Maxima_Yedek_${new Date().toISOString().slice(0,10)}.json"`});
@@ -129,7 +132,7 @@ const server = http.createServer(async(req,res)=>{
     if(pathname==='/api/restore'&&method==='POST') {
       const body=await parseBody(req);
       if(!body.cases) return json(res,{error:'Geçersiz yedek'},400);
-      for(const k of ['cases','events','todos','calls','chat','users','logs','settings','bk_raporlar','bk_kararlar','bk_parametreler','bk_yaklasimlar'])
+      for(const k of ['cases','events','todos','calls','chat','users','logs','settings'])
         if(body[k]!==undefined) await writeData(k,body[k]);
       return json(res,{ok:true});
     }
@@ -144,44 +147,45 @@ const server = http.createServer(async(req,res)=>{
       if(method==='POST'){const b=await parseBody(req);await writeData('settings',b);return json(res,{ok:true});}
     }
 
-    if(resource==='bilirkisi') {
-      const BK={raporlar:'bk_raporlar',kararlar:'bk_kararlar',parametreler:'bk_parametreler',yaklasimlar:'bk_yaklasimlar'};
-      const key=BK[id];
-      if(!key) return json(res,{error:'Gecersiz anahtar'},400);
-      if(method==='GET') return json(res,await readData(key));
-      if(method==='PUT'){const b=await parseBody(req);await writeData(key,b);return json(res,{ok:true});}
-    }
-
     const RESOURCES=['cases','events','todos','calls','chat','logs'];
     if(RESOURCES.includes(resource)) {
       if(method==='GET') return json(res,await readData(resource));
       if(method==='POST') {
         const body=await parseBody(req);
-        const data=await readData(resource);
-        const item={...body,id:body.id||Date.now().toString()+Math.random().toString(36).slice(2)};
-        data.push(item);
-        await writeData(resource,data);
+        const item=await withLock(resource, async()=>{
+          const data=await readData(resource);
+          const it={...body,id:body.id||Date.now().toString()+Math.random().toString(36).slice(2)};
+          data.push(it);
+          await writeData(resource,data);
+          return it;
+        });
         return json(res,item);
       }
       if(method==='PUT') {
         const body=await parseBody(req);
         if(!id){if(Array.isArray(body)){await writeData(resource,body);return json(res,{ok:true});}}
         else {
-          const data=await readData(resource);
-          const idx=data.findIndex(x=>x.id===id);
-          if(idx!==-1){data[idx]={...data[idx],...body,id};await writeData(resource,data);}
+          await withLock(resource, async()=>{
+            const data=await readData(resource);
+            const idx=data.findIndex(x=>String(x.id)===String(id));
+            if(idx!==-1){data[idx]={...data[idx],...body,id:data[idx].id};await writeData(resource,data);}
+          });
           return json(res,{ok:true});
         }
       }
       if(method==='DELETE'&&id) {
-        let data=await readData(resource);
-        data=data.filter(x=>x.id!==id);
+        await withLock(resource, async()=>{
+          let data=await readData(resource);
+          data=data.filter(x=>String(x.id)!==String(id));
+          await writeData(resource,data);
+        });
         if(resource==='cases'){
-          let events=await readData('events');
-          events=events.filter(e=>e.caseId!==id||!e.auto);
-          await writeData('events',events);
+          await withLock('events', async()=>{
+            let events=await readData('events');
+            events=events.filter(e=>String(e.caseId)!==String(id)||!e.auto);
+            await writeData('events',events);
+          });
         }
-        await writeData(resource,data);
         return json(res,{ok:true});
       }
     }
