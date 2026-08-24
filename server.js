@@ -28,6 +28,10 @@ const DEFAULTS = {
   cases:'[]',events:'[]',todos:'[]',calls:'[]',chat:'[]',logs:'[]',
   users:'["Av. Göksel Özerkan","Av. Berker Ünal","Av. Fatmanur Şenocak","Av. Aslıhan Bilgin","Mine Yılmazoğlu"]',
   settings:'{"theme":"dark","alarmDays":3}',
+  bk_raporlar:'[]',
+  bk_kararlar:'[]',
+  bk_parametreler:'{"yemek":[],"ulasim":[],"asgari":[],"kidemTavan":[]}',
+  bk_yaklasimlar:'{}',
 };
 
 async function readData(key) {
@@ -110,6 +114,9 @@ const server = http.createServer(async(req,res)=>{
   if(pathname==='/'||pathname==='/index.html')
     return serveFile(res,path.join(__dirname,'index.html'));
 
+  if(pathname==='/bilirkisi'||pathname==='/bilirkisi.html')
+    return serveFile(res,path.join(__dirname,'bilirkisi.html'));
+
   // PWA + patch statik dosyalar
   const staticFiles = ['/manifest.json','/sw.js','/icon-192.png','/icon-512.png','/patch.js'];
   if(staticFiles.includes(pathname))
@@ -122,7 +129,7 @@ const server = http.createServer(async(req,res)=>{
 
     if(pathname==='/api/backup'&&method==='GET') {
       const backup={version:2,exportedAt:new Date().toISOString()};
-      for(const k of ['cases','events','todos','calls','chat','users','logs','settings'])
+      for(const k of ['cases','events','todos','calls','chat','users','logs','settings','bk_raporlar','bk_kararlar','bk_parametreler','bk_yaklasimlar'])
         backup[k]=await readData(k);
       res.writeHead(200,{'Content-Type':'application/json',
         'Content-Disposition':`attachment; filename="Maxima_Yedek_${new Date().toISOString().slice(0,10)}.json"`});
@@ -132,7 +139,7 @@ const server = http.createServer(async(req,res)=>{
     if(pathname==='/api/restore'&&method==='POST') {
       const body=await parseBody(req);
       if(!body.cases) return json(res,{error:'Geçersiz yedek'},400);
-      for(const k of ['cases','events','todos','calls','chat','users','logs','settings'])
+      for(const k of ['cases','events','todos','calls','chat','users','logs','settings','bk_raporlar','bk_kararlar','bk_parametreler','bk_yaklasimlar'])
         if(body[k]!==undefined) await writeData(k,body[k]);
       return json(res,{ok:true});
     }
@@ -145,6 +152,14 @@ const server = http.createServer(async(req,res)=>{
     if(resource==='settings') {
       if(method==='GET') return json(res,await readData('settings'));
       if(method==='POST'){const b=await parseBody(req);await writeData('settings',b);return json(res,{ok:true});}
+    }
+
+    if(resource==='bilirkisi') {
+      const BK={raporlar:'bk_raporlar',kararlar:'bk_kararlar',parametreler:'bk_parametreler',yaklasimlar:'bk_yaklasimlar'};
+      const key=BK[id];
+      if(!key) return json(res,{error:'Gecersiz anahtar'},400);
+      if(method==='GET') return json(res,await readData(key));
+      if(method==='PUT'){const b=await parseBody(req);await writeData(key,b);return json(res,{ok:true});}
     }
 
     const RESOURCES=['cases','events','todos','calls','chat','logs'];
